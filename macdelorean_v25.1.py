@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -1014,11 +1015,6 @@ def check_macd_estado(df):
 
 st.markdown("""
 <style>
-@keyframes goldShimmer {
-    0%   { opacity: 0.7; }
-    50%  { opacity: 1; }
-    100% { opacity: 0.7; }
-}
 .header-line {
     width: 100%; height: 1px;
     background: linear-gradient(90deg, transparent 0%, #C9A84C 30%, #E8C96B 50%, #C9A84C 70%, transparent 100%);
@@ -1030,59 +1026,45 @@ st.markdown("""
     margin: 0 10px; vertical-align: middle;
 }
 </style>
-
-<div style='text-align:center; padding: 24px 0 8px 0;'>
-
-    <!-- LOGO SVG DEL DeLorean hexagonal (inline) -->
+<div style="text-align:center; padding: 24px 0 8px 0;">
     <svg viewBox="0 0 200 200" width="72" height="72" style="display:inline-block; margin-bottom:6px; filter: drop-shadow(0 0 12px rgba(201,168,76,0.4));">
-        <polygon points="100,8 170,46 170,154 100,192 30,154 30,46"
-                 fill="none" stroke="#C9A84C" stroke-width="4"/>
-        <!-- Cuerpo coche -->
+        <polygon points="100,8 170,46 170,154 100,192 30,154 30,46" fill="none" stroke="#C9A84C" stroke-width="4"/>
         <rect x="55" y="108" width="90" height="30" rx="3" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <!-- Parabrisas / techo -->
         <path d="M65,108 L72,82 L128,82 L135,108 Z" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <!-- Puerta ala izquierda -->
         <path d="M72,82 L55,58 L80,70 L72,82" fill="none" stroke="#C9A84C" stroke-width="2"/>
-        <!-- Puerta ala derecha -->
         <path d="M128,82 L145,58 L120,70 L128,82" fill="none" stroke="#C9A84C" stroke-width="2"/>
-        <!-- Faros -->
         <rect x="58" y="118" width="16" height="7" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
         <rect x="126" y="118" width="16" height="7" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-        <!-- Rejilla frontal -->
         <line x1="82" y1="125" x2="118" y2="125" stroke="#C9A84C" stroke-width="1.2"/>
         <line x1="82" y1="129" x2="118" y2="129" stroke="#C9A84C" stroke-width="1.2"/>
-        <!-- Ruedas -->
         <circle cx="73" cy="141" r="7" fill="none" stroke="#C9A84C" stroke-width="2"/>
         <circle cx="127" cy="141" r="7" fill="none" stroke="#C9A84C" stroke-width="2"/>
     </svg>
-
-    <div style='margin-top:4px;'>
-        <span style='font-family: Cinzel, serif; font-size: 1.75rem; font-weight: 700;
+    <div style="margin-top:4px;">
+        <span style="font-family: Cinzel, serif; font-size: 1.75rem; font-weight: 700;
                      color: #C9A84C; letter-spacing: 8px;
-                     text-shadow: 0 0 40px rgba(201,168,76,0.30);'>
+                     text-shadow: 0 0 40px rgba(201,168,76,0.30);">
             THE MACDELOREAN
         </span>
     </div>
-    <div style='margin-top:2px;'>
-        <span style='font-family: Cinzel, serif; font-size: 0.78rem; font-weight: 400;
-                     color: #8B6914; letter-spacing: 10px; text-transform: uppercase;'>
+    <div style="margin-top:2px;">
+        <span style="font-family: Cinzel, serif; font-size: 0.78rem; font-weight: 400;
+                     color: #8B6914; letter-spacing: 10px; text-transform: uppercase;">
             Investment Group
         </span>
     </div>
-
-    <div class='header-line' style='margin: 10px auto; max-width: 480px;'></div>
-
+    <div class="header-line" style="margin: 10px auto; max-width: 480px;"></div>
     <div>
-        <span class='header-diamond'></span>
-        <span style='font-family: Share Tech Mono, monospace; font-size: 0.68rem;
-                     color: #6B5010; letter-spacing: 5px; text-transform: uppercase;'>
-            Radar de Inteligencia Estructural &nbsp;·&nbsp; Universo Máximo
+        <span class="header-diamond"></span>
+        <span style="font-family: Share Tech Mono, monospace; font-size: 0.68rem;
+                     color: #6B5010; letter-spacing: 5px; text-transform: uppercase;">
+            Radar de Inteligencia Estructural &nbsp;&#183;&nbsp; Universo Máximo
         </span>
-        <span class='header-diamond'></span>
+        <span class="header-diamond"></span>
     </div>
-
 </div>
 """, unsafe_allow_html=True)
+
 
 st.markdown("<div style='height:1px; background: linear-gradient(90deg, transparent, #6B5010, transparent); margin-bottom:20px;'></div>", unsafe_allow_html=True)
 
