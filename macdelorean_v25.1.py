@@ -1027,18 +1027,52 @@ st.markdown("""
 }
 </style>
 <div style="text-align:center; padding: 24px 0 8px 0;">
-    <svg viewBox="0 0 200 200" width="72" height="72" style="display:inline-block; margin-bottom:6px; filter: drop-shadow(0 0 12px rgba(201,168,76,0.4));">
-        <polygon points="100,8 170,46 170,154 100,192 30,154 30,46" fill="none" stroke="#C9A84C" stroke-width="4"/>
-        <rect x="55" y="108" width="90" height="30" rx="3" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <path d="M65,108 L72,82 L128,82 L135,108 Z" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <path d="M72,82 L55,58 L80,70 L72,82" fill="none" stroke="#C9A84C" stroke-width="2"/>
-        <path d="M128,82 L145,58 L120,70 L128,82" fill="none" stroke="#C9A84C" stroke-width="2"/>
-        <rect x="58" y="118" width="16" height="7" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-        <rect x="126" y="118" width="16" height="7" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-        <line x1="82" y1="125" x2="118" y2="125" stroke="#C9A84C" stroke-width="1.2"/>
-        <line x1="82" y1="129" x2="118" y2="129" stroke="#C9A84C" stroke-width="1.2"/>
-        <circle cx="73" cy="141" r="7" fill="none" stroke="#C9A84C" stroke-width="2"/>
-        <circle cx="127" cy="141" r="7" fill="none" stroke="#C9A84C" stroke-width="2"/>
+    <svg viewBox="0 0 220 200" width="90" height="82" style="display:inline-block; margin-bottom:6px; filter: drop-shadow(0 0 14px rgba(201,168,76,0.45));">
+        <!-- Hexágono achatado como el logo original -->
+        <polygon points="110,10 190,55 190,145 110,190 30,145 30,55"
+                 fill="none" stroke="#C9A84C" stroke-width="4.5"/>
+
+        <!-- Cuerpo principal del coche -->
+        <rect x="52" y="115" width="116" height="28" rx="2" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+
+        <!-- Capó / parte delantera baja -->
+        <rect x="58" y="140" width="104" height="8" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
+
+        <!-- Parabrisas inclinado -->
+        <path d="M68,115 L78,88 L142,88 L152,115 Z" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
+
+        <!-- Techo plano -->
+        <line x1="78" y1="88" x2="142" y2="88" stroke="#C9A84C" stroke-width="2.5"/>
+
+        <!-- Puerta ala izquierda — característica del DeLorean -->
+        <path d="M78,88 L48,52 L72,72 L78,88" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+        <!-- Bisagra ala izquierda -->
+        <line x1="72" y1="72" x2="78" y2="88" stroke="#C9A84C" stroke-width="1.5"/>
+
+        <!-- Puerta ala derecha -->
+        <path d="M142,88 L172,52 L148,72 L142,88" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+        <!-- Bisagra ala derecha -->
+        <line x1="148" y1="72" x2="142" y2="88" stroke="#C9A84C" stroke-width="1.5"/>
+
+        <!-- Faro izquierdo rectangular -->
+        <rect x="56" y="120" width="20" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
+        <!-- Faro derecho rectangular -->
+        <rect x="144" y="120" width="20" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
+
+        <!-- Rejilla central -->
+        <rect x="82" y="120" width="56" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
+        <line x1="99" y1="120" x2="99" y2="129" stroke="#C9A84C" stroke-width="1"/>
+        <line x1="110" y1="120" x2="110" y2="129" stroke="#C9A84C" stroke-width="1"/>
+        <line x1="121" y1="120" x2="121" y2="129" stroke="#C9A84C" stroke-width="1"/>
+
+        <!-- Matrícula / franja central baja -->
+        <rect x="90" y="133" width="40" height="6" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
+
+        <!-- Ruedas -->
+        <circle cx="76" cy="148" r="8" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+        <circle cx="76" cy="148" r="3" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
+        <circle cx="144" cy="148" r="8" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
+        <circle cx="144" cy="148" r="3" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
     </svg>
     <div style="margin-top:4px;">
         <span style="font-family: Cinzel, serif; font-size: 1.75rem; font-weight: 700;
