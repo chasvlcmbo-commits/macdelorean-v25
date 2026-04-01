@@ -1012,6 +1012,10 @@ def check_macd_estado(df):
 # 3. INTERFAZ
 # ==============================================================================
 
+col1, col2, col3 = st.columns([1,1,1])
+with col2:
+    st.image("file_000000005a5451f788bcd99cfd5924fa_conversation_id=67f55f0e-bd50-800d-be41-4cd7655690a8&message_id=2e76fcf1-1345-48c0-a4b1-738909da3a1c.PNG", width=180)
+
 st.markdown("""
 <style>
 .header-line {
@@ -1025,29 +1029,7 @@ st.markdown("""
     margin: 0 10px; vertical-align: middle;
 }
 </style>
-<div style="text-align:center; padding: 24px 0 8px 0;">
-    <svg viewBox="0 0 220 200" width="90" height="82" style="display:inline-block; margin-bottom:6px; filter: drop-shadow(0 0 14px rgba(201,168,76,0.45));">
-        <polygon points="110,10 190,55 190,145 110,190 30,145 30,55" fill="none" stroke="#C9A84C" stroke-width="4.5"/>
-        <rect x="52" y="115" width="116" height="28" rx="2" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <rect x="58" y="140" width="104" height="8" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
-        <path d="M68,115 L78,88 L142,88 L152,115 Z" fill="none" stroke="#C9A84C" stroke-width="2.5"/>
-        <line x1="78" y1="88" x2="142" y2="88" stroke="#C9A84C" stroke-width="2.5"/>
-        <path d="M78,88 L48,52 L72,72 L78,88" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
-        <line x1="72" y1="72" x2="78" y2="88" stroke="#C9A84C" stroke-width="1.5"/>
-        <path d="M142,88 L172,52 L148,72 L142,88" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
-        <line x1="148" y1="72" x2="142" y2="88" stroke="#C9A84C" stroke-width="1.5"/>
-        <rect x="56" y="120" width="20" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
-        <rect x="144" y="120" width="20" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
-        <rect x="82" y="120" width="56" height="9" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-        <line x1="99" y1="120" x2="99" y2="129" stroke="#C9A84C" stroke-width="1"/>
-        <line x1="110" y1="120" x2="110" y2="129" stroke="#C9A84C" stroke-width="1"/>
-        <line x1="121" y1="120" x2="121" y2="129" stroke="#C9A84C" stroke-width="1"/>
-        <rect x="90" y="133" width="40" height="6" rx="1" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
-        <circle cx="76" cy="148" r="8" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
-        <circle cx="76" cy="148" r="3" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
-        <circle cx="144" cy="148" r="8" fill="none" stroke="#C9A84C" stroke-width="2.2"/>
-        <circle cx="144" cy="148" r="3" fill="none" stroke="#C9A84C" stroke-width="1.2"/>
-    </svg>
+<div style="text-align:center; padding: 4px 0 8px 0;">
     <div style="margin-top:4px;">
         <span style="font-family: Cinzel, serif; font-size: 1.75rem; font-weight: 700;
                      color: #C9A84C; letter-spacing: 8px;
@@ -1613,4 +1595,5 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
+
 
