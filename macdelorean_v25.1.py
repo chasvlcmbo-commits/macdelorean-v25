@@ -1012,9 +1012,9 @@ def check_macd_estado(df):
 # 3. INTERFAZ
 # ==============================================================================
 
-col1, col2, col3 = st.columns([1,1,1])
+col1, col2, col3 = st.columns([1,2,1])
 with col2:
-    st.image("file_000000005a5451f788bcd99cfd5924fa_conversation_id=67f55f0e-bd50-800d-be41-4cd7655690a8&message_id=2e76fcf1-1345-48c0-a4b1-738909da3a1c.PNG", width=180)
+    st.image("file_000000005a5451f788bcd99cfd5924fa_conversation_id=67f55f0e-bd50-800d-be41-4cd7655690a8&message_id=2e76fcf1-1345-48c0-a4b1-738909da3a1c.PNG", use_container_width=True)
 
 st.markdown("""
 <style>
@@ -1595,5 +1595,6 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
+
 
 
