@@ -1062,18 +1062,9 @@ st.markdown("<div style='height:1px; background: linear-gradient(90deg, transpar
 # SIDEBAR
 # ==============================================================================
 with st.sidebar:
+    st.image("file_000000005a5451f788bcd99cfd5924fa_conversation_id=67f55f0e-bd50-800d-be41-4cd7655690a8&message_id=2e76fcf1-1345-48c0-a4b1-738909da3a1c.PNG", use_container_width=True)
     st.markdown("""
-    <div style='text-align:center; padding: 18px 0 10px 0; border-bottom: 1px solid #2A1E08;'>
-        <svg viewBox="0 0 80 80" width="36" height="36" style="display:block; margin:0 auto 6px auto; opacity:0.85; filter: drop-shadow(0 0 6px rgba(201,168,76,0.3));">
-            <polygon points="40,4 68,20 68,60 40,76 12,60 12,20"
-                     fill="none" stroke="#C9A84C" stroke-width="3"/>
-            <rect x="22" y="46" width="36" height="14" rx="2" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
-            <path d="M26,46 L29,34 L51,34 L54,46 Z" fill="none" stroke="#C9A84C" stroke-width="1.8"/>
-            <path d="M29,34 L22,24 L32,29 L29,34" fill="none" stroke="#C9A84C" stroke-width="1.4"/>
-            <path d="M51,34 L58,24 L48,29 L51,34" fill="none" stroke="#C9A84C" stroke-width="1.4"/>
-            <circle cx="29" cy="61" r="4" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-            <circle cx="51" cy="61" r="4" fill="none" stroke="#C9A84C" stroke-width="1.5"/>
-        </svg>
+    <div style='text-align:center; padding: 4px 0 10px 0; border-bottom: 1px solid #2A1E08;'>
         <div style='font-family: Cinzel, serif; font-size: 0.8rem; color: #C9A84C; letter-spacing: 4px; font-weight:600;'>PANEL DE CONTROL</div>
         <div style='font-family: Share Tech Mono, monospace; font-size: 0.6rem; color: #6B5010; letter-spacing: 3px; margin-top:2px;'>RADAR v24</div>
     </div>
@@ -1595,6 +1586,7 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
+
 
 
 
