@@ -1,3 +1,4 @@
+
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -994,18 +995,270 @@ def check_cruce_emas(df, velas=4):
 
 def check_macd_estado(df):
     """
-    Devuelve el estado del MACD: 'alcista', 'bajista' o 'neutro'
-    Alcista: línea MACD por encima de la Signal
-    Bajista: línea MACD por debajo de la Signal
+    Devuelve tupla (estado, posicion_cero)
+    estado: 'alcista', 'bajista' o 'neutro'
+    posicion_cero: 'encima' o 'debajo' respecto a la linea 0
     """
     if 'MACD' not in df.columns or 'Signal' not in df.columns or len(df) < 1:
-        return 'neutro'
+        return 'neutro', 'encima'
     curr = df.iloc[-1]
+    estado = 'neutro'
     if curr['MACD'] > curr['Signal']:
-        return 'alcista'
-    if curr['MACD'] < curr['Signal']:
-        return 'bajista'
-    return 'neutro'
+        estado = 'alcista'
+    elif curr['MACD'] < curr['Signal']:
+        estado = 'bajista'
+    posicion = 'encima' if curr['MACD'] >= 0 else 'debajo'
+    return estado, posicion
+
+
+
+# ==============================================================================
+# SEÑAL DE PACO PÉREZ — Motor de velas de cambio con triple confirmación
+# ==============================================================================
+
+def check_senal_paco(df, timeframe="D"):
+    """
+    Busca patrones de vela de cambio con triple confirmación:
+    1. Patrón de vela reconocido (martillo, envolvente, harami, etc.)
+    2. Estocástico en zona extrema (<25 alcista / >75 bajista)
+    3. Volumen > 1.5x media 20 velas
+    Devuelve lista de señales encontradas en las últimas 4 velas.
+    """
+    resultados = []
+
+    if df is None or df.empty or len(df) < 25:
+        return resultados
+    if 'Volume' not in df.columns:
+        return resultados
+
+    # Calcular estocástico
+    low14  = df['Low'].rolling(14).min()
+    high14 = df['High'].rolling(14).max()
+    k_raw  = 100 * (df['Close'] - low14) / (high14 - low14 + 1e-10)
+    stoch_k = k_raw.rolling(3).mean()
+
+    # Media de volumen (20 velas)
+    vol_media = df['Volume'].rolling(20).mean()
+
+    # MACD
+    macd_estado = 'neutro'
+    if 'MACD' in df.columns and 'Signal' in df.columns:
+        curr = df.iloc[-1]
+        if curr['MACD'] > curr['Signal']:
+            macd_estado = 'alcista'
+        elif curr['MACD'] < curr['Signal']:
+            macd_estado = 'bajista'
+
+    def nombre_tf(tf):
+        return {"D": "días", "W": "semanas", "M": "meses"}.get(tf, "velas")
+
+    # Buscar en las últimas 4 velas
+    for vela_idx in range(1, 5):
+        idx = -vela_idx
+        if abs(idx) >= len(df) - 5:
+            continue
+
+        o = float(df['Open'].iloc[idx])
+        h = float(df['High'].iloc[idx])
+        l = float(df['Low'].iloc[idx])
+        c = float(df['Close'].iloc[idx])
+        v = float(df['Volume'].iloc[idx])
+        vm = float(vol_media.iloc[idx]) if not pd.isna(vol_media.iloc[idx]) else 0
+        k  = float(stoch_k.iloc[idx])  if not pd.isna(stoch_k.iloc[idx])  else 50
+
+        if vm == 0:
+            continue
+
+        cuerpo     = abs(c - o)
+        rango      = h - l + 1e-10
+        mecha_inf  = min(o, c) - l
+        mecha_sup  = h - max(o, c)
+        es_alcista_vela = c > o
+        ratio_vol  = round(v / vm, 2)
+
+        # ── FILTROS OBLIGATORIOS ──
+        vol_ok   = ratio_vol >= 1.5
+        stoch_ok_alc = k < 25
+        stoch_ok_baj = k > 75
+
+        if not vol_ok:
+            continue
+
+        patron    = None
+        direccion = None
+
+        # ─── MARTILLO (alcista) ───
+        # Mecha inferior larga (>2x cuerpo), mecha superior pequeña, en zona baja
+        if (stoch_ok_alc and
+            mecha_inf >= cuerpo * 2.0 and
+            mecha_sup <= cuerpo * 0.5 and
+            cuerpo >= rango * 0.1 and
+            mecha_inf >= rango * 0.55):
+            patron    = "🔨 Martillo"
+            direccion = "ALCISTA"
+
+        # ─── MARTILLO INVERTIDO (alcista) ───
+        elif (stoch_ok_alc and
+              mecha_sup >= cuerpo * 2.0 and
+              mecha_inf <= cuerpo * 0.5 and
+              cuerpo >= rango * 0.1):
+            patron    = "🔨 Martillo Invertido"
+            direccion = "ALCISTA"
+
+        # ─── ESTRELLA FUGAZ (bajista) ───
+        elif (stoch_ok_baj and
+              mecha_sup >= cuerpo * 2.0 and
+              mecha_inf <= cuerpo * 0.3 and
+              cuerpo >= rango * 0.1):
+            patron    = "💫 Estrella Fugaz"
+            direccion = "BAJISTA"
+
+        # ─── PINBAR ALCISTA ───
+        elif (stoch_ok_alc and
+              mecha_inf >= rango * 0.65 and
+              cuerpo <= rango * 0.25 and
+              max(o, c) >= h - rango * 0.35):
+            patron    = "📍 Pinbar Alcista"
+            direccion = "ALCISTA"
+
+        # ─── PINBAR BAJISTA ───
+        elif (stoch_ok_baj and
+              mecha_sup >= rango * 0.65 and
+              cuerpo <= rango * 0.25 and
+              min(o, c) <= l + rango * 0.35):
+            patron    = "📍 Pinbar Bajista"
+            direccion = "BAJISTA"
+
+        # ─── VELA DE ENGAÑO ALCISTA ───
+        elif (stoch_ok_alc and
+              mecha_inf >= rango * 0.45 and
+              c > (l + rango * 0.5) and
+              mecha_inf >= cuerpo * 1.5):
+            patron    = "🎭 Vela Engaño Alcista"
+            direccion = "ALCISTA"
+
+        # ─── VELA DE ENGAÑO BAJISTA ───
+        elif (stoch_ok_baj and
+              mecha_sup >= rango * 0.45 and
+              c < (h - rango * 0.5) and
+              mecha_sup >= cuerpo * 1.5):
+            patron    = "🎭 Vela Engaño Bajista"
+            direccion = "BAJISTA"
+
+        # ─── ENVOLVENTE ALCISTA ───
+        elif (stoch_ok_alc and
+              vela_idx < len(df) - 1 and
+              es_alcista_vela):
+            o_prev = float(df['Open'].iloc[idx - 1])
+            c_prev = float(df['Close'].iloc[idx - 1])
+            if c_prev < o_prev and o < c_prev and c > o_prev:
+                patron    = "🔁 Envolvente Alcista"
+                direccion = "ALCISTA"
+
+        # ─── ENVOLVENTE BAJISTA ───
+        elif (stoch_ok_baj and
+              vela_idx < len(df) - 1 and
+              not es_alcista_vela):
+            o_prev = float(df['Open'].iloc[idx - 1])
+            c_prev = float(df['Close'].iloc[idx - 1])
+            if c_prev > o_prev and o > c_prev and c < o_prev:
+                patron    = "🔁 Envolvente Bajista"
+                direccion = "BAJISTA"
+
+        # ─── HARAMI ALCISTA ───
+        elif (stoch_ok_alc and
+              vela_idx < len(df) - 1 and
+              es_alcista_vela):
+            o_prev = float(df['Open'].iloc[idx - 1])
+            c_prev = float(df['Close'].iloc[idx - 1])
+            if (c_prev < o_prev and
+                o > c_prev and c < o_prev and
+                cuerpo < abs(o_prev - c_prev) * 0.6):
+                patron    = "🤰 Harami Alcista"
+                direccion = "ALCISTA"
+
+        # ─── HARAMI BAJISTA ───
+        elif (stoch_ok_baj and
+              vela_idx < len(df) - 1 and
+              not es_alcista_vela):
+            o_prev = float(df['Open'].iloc[idx - 1])
+            c_prev = float(df['Close'].iloc[idx - 1])
+            if (c_prev > o_prev and
+                o < c_prev and c > o_prev and
+                cuerpo < abs(c_prev - o_prev) * 0.6):
+                patron    = "🤰 Harami Bajista"
+                direccion = "BAJISTA"
+
+        # ─── DOJI DE GIRO ───
+        elif (cuerpo <= rango * 0.08 and
+              rango > 0 and
+              (stoch_ok_alc or stoch_ok_baj)):
+            direccion = "ALCISTA" if stoch_ok_alc else "BAJISTA"
+            patron    = f"✝️ Doji {'Alcista' if stoch_ok_alc else 'Bajista'}"
+
+        # ─── MARUBOZU ALCISTA (vela de fuerza) ───
+        elif (stoch_ok_alc and
+              es_alcista_vela and
+              cuerpo >= rango * 0.85 and
+              mecha_inf <= rango * 0.05 and
+              mecha_sup <= rango * 0.05):
+            patron    = "🟩 Marubozu Alcista"
+            direccion = "ALCISTA"
+
+        # ─── MARUBOZU BAJISTA ───
+        elif (stoch_ok_baj and
+              not es_alcista_vela and
+              cuerpo >= rango * 0.85 and
+              mecha_inf <= rango * 0.05 and
+              mecha_sup <= rango * 0.05):
+            patron    = "🟥 Marubozu Bajista"
+            direccion = "BAJISTA"
+
+        if patron is None:
+            continue
+
+        # Calcular antigüedad
+        unidad = nombre_tf(timeframe)
+        if vela_idx == 1:
+            antiguedad = f"Vela actual"
+        else:
+            antiguedad = f"Hace {vela_idx - 1} {unidad}"
+
+        # Buscar patrones en las 4 velas PREVIAS a esta para contexto
+        contexto_previas = []
+        for prev_i in range(1, 5):
+            prev_idx = idx - prev_i
+            if abs(prev_idx) >= len(df) - 2:
+                break
+            op = float(df['Open'].iloc[prev_idx])
+            hp = float(df['High'].iloc[prev_idx])
+            lp = float(df['Low'].iloc[prev_idx])
+            cp = float(df['Close'].iloc[prev_idx])
+            cuerpo_p  = abs(cp - op)
+            rango_p   = hp - lp + 1e-10
+            mecha_i_p = min(op, cp) - lp
+            mecha_s_p = hp - max(op, cp)
+            # Solo detectar patrones más obvios para contexto
+            if mecha_i_p >= cuerpo_p * 2.0 and mecha_s_p <= cuerpo_p * 0.5:
+                contexto_previas.append(f"Martillo -{prev_i+vela_idx-1}{unidad[0]}")
+            elif mecha_s_p >= cuerpo_p * 2.0 and mecha_i_p <= cuerpo_p * 0.5:
+                contexto_previas.append(f"E.Fugaz -{prev_i+vela_idx-1}{unidad[0]}")
+            elif mecha_i_p >= rango_p * 0.65 and cuerpo_p <= rango_p * 0.25:
+                contexto_previas.append(f"Pinbar -{prev_i+vela_idx-1}{unidad[0]}")
+
+        contexto_str = " · ".join(contexto_previas[:2]) if contexto_previas else "—"
+
+        resultados.append({
+            "patron":     patron,
+            "direccion":  direccion,
+            "antiguedad": antiguedad,
+            "stoch_k":    round(k, 1),
+            "vol_ratio":  ratio_vol,
+            "macd":       macd_estado,
+            "contexto":   contexto_str,
+        })
+
+    return resultados
 
 
 # ==============================================================================
@@ -1121,6 +1374,7 @@ with st.sidebar:
     filtro_confluencia = st.checkbox("💥 Confluencia Div + Vela",       value=True,  key="f5")
     filtro_emas        = st.checkbox("📈 Cruce EMA 50/200",              value=False, key="f6")
     filtro_puntob      = st.checkbox("🔵 Módulo de Arranque (Punto B)",  value=False, key="f7")
+    filtro_paco        = st.checkbox("🌟 Señal de Paco Pérez",            value=False, key="f8")
 
     if filtro_puntob:
         st.markdown("**Timeframes Punto B:**")
@@ -1131,14 +1385,26 @@ with st.sidebar:
     else:
         pb_4h = pb_d = pb_w = pb_m = False
 
+    if filtro_paco:
+        st.markdown("**MACD — Señal Paco Pérez:**")
+        opciones_paco_macd = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+        paco_macd_filtro = st.selectbox("Estado MACD", opciones_paco_macd, index=0, key="paco_macd")
+    else:
+        paco_macd_filtro = "⚪ Cualquiera"
+
     if filtro_macd_combo:
         st.markdown("**Estado MACD — selecciona cada TF:**")
-        opciones_macd = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+        opciones_macd  = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+        opciones_cero  = ["⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"]
         macd_m = st.selectbox("Mensual (M)", opciones_macd, index=0, key="macd_m")
+        cero_m = st.selectbox("Línea 0 — Mensual", opciones_cero, index=0, key="cero_m")
         macd_w = st.selectbox("Semanal (W)", opciones_macd, index=0, key="macd_w")
+        cero_w = st.selectbox("Línea 0 — Semanal", opciones_cero, index=0, key="cero_w")
         macd_d = st.selectbox("Diario  (D)", opciones_macd, index=0, key="macd_d")
+        cero_d = st.selectbox("Línea 0 — Diario", opciones_cero, index=0, key="cero_d")
     else:
         macd_m = macd_w = macd_d = "⚪ Cualquiera"
+        cero_m = cero_w = cero_d = "⚪ Cualquiera"
 
     st.markdown("<div style='height:12px; border-top:1px solid #1A1208; margin-top:10px;'></div>", unsafe_allow_html=True)
     st.markdown("""<div style='font-family: Cinzel, serif; font-size: 0.72rem; color: #8B6914; letter-spacing: 4px; padding: 8px 0 8px 0; border-bottom: 1px solid #1A1208;'>◆ &nbsp;DIRECCIÓN</div>""", unsafe_allow_html=True)
@@ -1177,7 +1443,7 @@ if lanzar:
     if not indices_seleccionados:
         st.error("⚠️ Selecciona al menos un índice.")
         st.stop()
-    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob):
+    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob or filtro_paco):
         st.error("⚠️ Activa al menos un filtro de búsqueda.")
         st.stop()
 
@@ -1194,6 +1460,7 @@ if lanzar:
     res_confluencia = []
     res_emas        = []
     res_puntob      = []
+    res_paco        = []
 
     progress_bar = st.progress(0)
     status_text  = st.empty()
@@ -1252,25 +1519,53 @@ if lanzar:
                         ph_div.dataframe(pd.DataFrame(res_diverg), use_container_width=True)
 
         if filtro_macd_combo:
-            estado_m = check_macd_estado(pack['M'])
-            estado_w = check_macd_estado(pack['W'])
-            estado_d = check_macd_estado(pack['D'])
+            estado_m, pos_m = check_macd_estado(pack['M'])
+            estado_w, pos_w = check_macd_estado(pack['W'])
+            estado_d, pos_d = check_macd_estado(pack['D'])
 
-            def cumple(seleccion, estado):
-                if seleccion == "⚪ Cualquiera": return True
-                if seleccion == "🟢 Alcista"   : return estado == 'alcista'
-                if seleccion == "🔴 Bajista"   : return estado == 'bajista'
+            def cumple(sel_estado, sel_cero, estado, posicion):
+                if sel_estado == "🟢 Alcista"  and estado != 'alcista': return False
+                if sel_estado == "🔴 Bajista"  and estado != 'bajista': return False
+                if sel_cero == "⬆️ Por encima de 0" and posicion != 'encima': return False
+                if sel_cero == "⬇️ Por debajo de 0" and posicion != 'debajo': return False
                 return True
 
-            if cumple(macd_m, estado_m) and cumple(macd_w, estado_w) and cumple(macd_d, estado_d):
-                def icono(e): return "🟢" if e=='alcista' else ("🔴" if e=='bajista' else "⚪")
+            if (cumple(macd_m, cero_m, estado_m, pos_m) and
+                cumple(macd_w, cero_w, estado_w, pos_w) and
+                cumple(macd_d, cero_d, estado_d, pos_d)):
+
+                def icono_estado(e): return "🟢" if e=='alcista' else ("🔴" if e=='bajista' else "⚪")
+                def icono_cero(p):   return "⬆️" if p=='encima' else "⬇️"
+
                 res_macd.append({
                     "Ticker":   ticker,
-                    "Mensual":  f"{icono(estado_m)} {estado_m.capitalize()}",
-                    "Semanal":  f"{icono(estado_w)} {estado_w.capitalize()}",
-                    "Diario":   f"{icono(estado_d)} {estado_d.capitalize()}",
+                    "Mensual":  f"{icono_estado(estado_m)} {estado_m.capitalize()} {icono_cero(pos_m)}",
+                    "Semanal":  f"{icono_estado(estado_w)} {estado_w.capitalize()} {icono_cero(pos_w)}",
+                    "Diario":   f"{icono_estado(estado_d)} {estado_d.capitalize()} {icono_cero(pos_d)}",
                     "Precio":   precio
                 })
+
+        # ── SEÑAL DE PACO PÉREZ ──
+        if filtro_paco:
+            for tf_key, tf_name in [('D', 'DIARIO'), ('W', 'SEMANAL'), ('M', 'MENSUAL')]:
+                senales = check_senal_paco(pack[tf_key], timeframe=tf_key)
+                for senal in senales:
+                    dir_ok = (senal['direccion'] == 'ALCISTA' and dir_alcista) or                              (senal['direccion'] == 'BAJISTA' and dir_bajista)
+                    macd_ok = (paco_macd_filtro == "⚪ Cualquiera") or                               (paco_macd_filtro == "🟢 Alcista" and senal['macd'] == 'alcista') or                               (paco_macd_filtro == "🔴 Bajista" and senal['macd'] == 'bajista')
+                    if dir_ok and macd_ok:
+                        macd_icon = "🟢" if senal['macd'] == 'alcista' else ("🔴" if senal['macd'] == 'bajista' else "⚪")
+                        res_paco.append({
+                            "Ticker":     ticker,
+                            "TF":         tf_name,
+                            "Patrón":     senal['patron'],
+                            "Dirección":  senal['direccion'],
+                            "Antigüedad": senal['antiguedad'],
+                            "Stoch K":    senal['stoch_k'],
+                            "Vol x media":senal['vol_ratio'],
+                            "MACD":       f"{macd_icon} {senal['macd'].capitalize()}",
+                            "Velas prev": senal['contexto'],
+                            "Precio":     precio
+                        })
 
         # ── CONFLUENCIA: Divergencia + Vela de Engaño mismo TF ──
         if filtro_confluencia:
@@ -1412,6 +1707,7 @@ if lanzar:
     if filtro_confluencia:  tab_labels.append(f"💥 CONFLUENCIA ({len(res_confluencia)})")
     if filtro_emas:         tab_labels.append(f"📈 EMA CROSS ({len(res_emas)})")
     if filtro_puntob:       tab_labels.append(f"🔵 PUNTO B ({len(res_puntob)})")
+    if filtro_paco:         tab_labels.append(f"🌟 PACO PÉREZ ({len(res_paco)})")
 
     tabs = st.tabs(tab_labels)
     tab_idx = 0
@@ -1528,6 +1824,22 @@ if lanzar:
             else:
                 st.info("No se han detectado módulos de arranque válidos.")
 
+    if filtro_paco:
+        with tabs[tab_idx]:
+            if res_paco:
+                df_out = pd.DataFrame(res_paco)
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
+                if not alc.empty:
+                    st.markdown("#### 🟢 SEÑALES ALCISTAS — PACO PÉREZ")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                if not baj.empty:
+                    st.markdown("#### 🔴 SEÑALES BAJISTAS — PACO PÉREZ")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "paco_perez.csv", "text/csv")
+            else:
+                st.info("Sin señales Paco Pérez detectadas. El mercado no presenta configuraciones de alta calidad ahora mismo.")
+
 else:
     st.markdown("<br>", unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
@@ -1586,6 +1898,8 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
+
+
 
 
 
