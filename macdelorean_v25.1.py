@@ -1036,8 +1036,9 @@ def check_senal_paco(df, timeframe="D"):
     k_raw  = 100 * (df['Close'] - low14) / (high14 - low14 + 1e-10)
     stoch_k = k_raw.rolling(3).mean()
 
-    # Media de volumen (20 velas)
+    # Volumen institucional — media 20 velas + máximo 20 velas
     vol_media = df['Volume'].rolling(20).mean()
+    vol_max20 = df['Volume'].rolling(20).max()
 
     # MACD
     macd_estado = 'neutro'
@@ -1062,8 +1063,9 @@ def check_senal_paco(df, timeframe="D"):
         l = float(df['Low'].iloc[idx])
         c = float(df['Close'].iloc[idx])
         v = float(df['Volume'].iloc[idx])
-        vm = float(vol_media.iloc[idx]) if not pd.isna(vol_media.iloc[idx]) else 0
-        k  = float(stoch_k.iloc[idx])  if not pd.isna(stoch_k.iloc[idx])  else 50
+        vm   = float(vol_media.iloc[idx]) if not pd.isna(vol_media.iloc[idx]) else 0
+        vmax = float(vol_max20.iloc[idx]) if not pd.isna(vol_max20.iloc[idx]) else 0
+        k    = float(stoch_k.iloc[idx])   if not pd.isna(stoch_k.iloc[idx])   else 50
 
         if vm == 0:
             continue
@@ -1073,10 +1075,11 @@ def check_senal_paco(df, timeframe="D"):
         mecha_inf  = min(o, c) - l
         mecha_sup  = h - max(o, c)
         es_alcista_vela = c > o
-        ratio_vol  = round(v / vm, 2)
+        ratio_vol  = round(v / vm, 2) if vm > 0 else 0
 
         # ── FILTROS OBLIGATORIOS ──
-        vol_ok   = ratio_vol >= 1.5
+        # Volumen institucional: >2x media 20 velas Y mayor de las últimas 20 velas
+        vol_ok   = (ratio_vol >= 2.0) and (v >= vmax * 0.95)
         stoch_ok_alc = k < 25
         stoch_ok_baj = k > 75
 
