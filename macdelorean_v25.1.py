@@ -1,4 +1,3 @@
-
 import streamlit as st
 import yfinance as yf
 import pandas as pd
@@ -886,7 +885,7 @@ def check_divergencia(df, timeframe="D"):
     if 'MACD' not in df.columns or 'Close' not in df.columns:
         return False, "", "", ""
 
-    min_velas = {"D": 40, "W": 26, "M": 12}.get(timeframe, 40)
+    min_velas = {"D": 30, "W": 26, "M": 12}.get(timeframe, 30)
     min_swing_sep = 3
 
     rango_macd = df['MACD'].max() - df['MACD'].min()
@@ -1129,22 +1128,6 @@ def check_senal_paco(df, timeframe="D"):
             patron    = "📍 Pinbar Bajista"
             direccion = "BAJISTA"
 
-        # ─── VELA DE ENGAÑO ALCISTA ───
-        elif (stoch_ok_alc and
-              mecha_inf >= rango * 0.45 and
-              c > (l + rango * 0.5) and
-              mecha_inf >= cuerpo * 1.5):
-            patron    = "🎭 Vela Engaño Alcista"
-            direccion = "ALCISTA"
-
-        # ─── VELA DE ENGAÑO BAJISTA ───
-        elif (stoch_ok_baj and
-              mecha_sup >= rango * 0.45 and
-              c < (h - rango * 0.5) and
-              mecha_sup >= cuerpo * 1.5):
-            patron    = "🎭 Vela Engaño Bajista"
-            direccion = "BAJISTA"
-
         # ─── ENVOLVENTE ALCISTA ───
         elif (stoch_ok_alc and
               vela_idx < len(df) - 1 and
@@ -1213,6 +1196,17 @@ def check_senal_paco(df, timeframe="D"):
               mecha_sup <= rango * 0.05):
             patron    = "🟥 Marubozu Bajista"
             direccion = "BAJISTA"
+
+        # ─── VELA DE ENGAÑO — usa check_vela_engano (misma lógica que buscador W/M) ───
+        if patron is None:
+            es_engano, tipo_engano, k_engano, _ = check_vela_engano(df, idx=idx)
+            if es_engano and vol_ok:
+                if "ALCISTA" in tipo_engano and stoch_ok_alc:
+                    patron    = "🎭 Vela Engaño Alcista"
+                    direccion = "ALCISTA"
+                elif "BAJISTA" in tipo_engano and stoch_ok_baj:
+                    patron    = "🎭 Vela Engaño Bajista"
+                    direccion = "BAJISTA"
 
         if patron is None:
             continue
@@ -1392,6 +1386,20 @@ with st.sidebar:
     else:
         paco_macd_filtro = "⚪ Cualquiera"
 
+    if filtro_diverg or filtro_confluencia:
+        st.markdown("**MACD — Divergencias / Confluencias:**")
+        opc_estado = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+        opc_cero   = ["⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"]
+        div_macd_m_est = st.selectbox("Mensual — Estado",   opc_estado, index=0, key="div_m_est")
+        div_macd_m_cer = st.selectbox("Mensual — Línea 0",  opc_cero,   index=0, key="div_m_cer")
+        div_macd_w_est = st.selectbox("Semanal — Estado",   opc_estado, index=0, key="div_w_est")
+        div_macd_w_cer = st.selectbox("Semanal — Línea 0",  opc_cero,   index=0, key="div_w_cer")
+        div_macd_d_est = st.selectbox("Diario — Estado",    opc_estado, index=0, key="div_d_est")
+        div_macd_d_cer = st.selectbox("Diario — Línea 0",   opc_cero,   index=0, key="div_d_cer")
+    else:
+        div_macd_m_est = div_macd_w_est = div_macd_d_est = "⚪ Cualquiera"
+        div_macd_m_cer = div_macd_w_cer = div_macd_d_cer = "⚪ Cualquiera"
+
     if filtro_macd_combo:
         st.markdown("**Estado MACD — selecciona cada TF:**")
         opciones_macd  = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
@@ -1503,20 +1511,34 @@ if lanzar:
                         break
 
         if filtro_diverg:
-            for tf_key, tf_name in [('D', 'DIARIO'), ('W', 'SEMANAL'), ('M', 'MENSUAL')]:
+            for tf_key, tf_name, est_sel, cer_sel in [
+                ('D', 'DIARIO',   div_macd_d_est, div_macd_d_cer),
+                ('W', 'SEMANAL',  div_macd_w_est, div_macd_w_cer),
+                ('M', 'MENSUAL',  div_macd_m_est, div_macd_m_cer),
+            ]:
                 es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
                 if es_div:
                     es_alc_div = "ALCISTA" in tipo_div
-                    if (es_alc_div and dir_alcista) or (not es_alc_div and dir_bajista):
-                        res_diverg.append({
-                            "Ticker":     ticker,
-                            "TF":         tf_name,
-                            "Tipo":       tipo_div,
-                            "Duración":   duracion,
-                            "Formada":    antiguedad,
-                            "Precio":     precio
-                        })
-                        ph_div.dataframe(pd.DataFrame(res_diverg), use_container_width=True)
+                    if not ((es_alc_div and dir_alcista) or (not es_alc_div and dir_bajista)):
+                        continue
+                    # Filtro MACD
+                    est_tf, pos_tf = check_macd_estado(pack[tf_key])
+                    if est_sel == "🟢 Alcista"        and est_tf != 'alcista': continue
+                    if est_sel == "🔴 Bajista"        and est_tf != 'bajista': continue
+                    if cer_sel == "⬆️ Por encima de 0" and pos_tf != 'encima': continue
+                    if cer_sel == "⬇️ Por debajo de 0" and pos_tf != 'debajo': continue
+                    macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
+                    cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
+                    res_diverg.append({
+                        "Ticker":     ticker,
+                        "TF":         tf_name,
+                        "Tipo":       tipo_div,
+                        "Duración":   duracion,
+                        "Formada":    antiguedad,
+                        "MACD":       f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
+                        "Precio":     precio
+                    })
+                    ph_div.dataframe(pd.DataFrame(res_diverg), use_container_width=True)
 
         if filtro_macd_combo:
             estado_m, pos_m = check_macd_estado(pack['M'])
@@ -1569,25 +1591,31 @@ if lanzar:
 
         # ── CONFLUENCIA: Divergencia + Vela de Engaño mismo TF ──
         if filtro_confluencia:
-            for tf_key, tf_name in [('W', 'SEMANAL'), ('M', 'MENSUAL')]:
-                # Buscar vela de engaño en este TF
+            for tf_key, tf_name, est_sel, cer_sel in [
+                ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
+                ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
+            ]:
                 for j in range(4):
                     es_vela, tipo_vela, k_vela, stop_vela = check_vela_engano(pack[tf_key], idx=-1-j)
                     if not es_vela:
                         continue
-                    # Buscar divergencia en mismo TF con misma dirección
                     es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
                     if not es_div:
                         break
-                    # Verificar que apuntan en la misma dirección
                     vela_alc = "ALCISTA" in tipo_vela
                     div_alc  = "ALCISTA" in tipo_div
                     if vela_alc != div_alc:
                         break
-                    # Filtro dirección global
                     if vela_alc and not dir_alcista: break
                     if not vela_alc and not dir_bajista: break
-
+                    # Filtro MACD
+                    est_tf, pos_tf = check_macd_estado(pack[tf_key])
+                    if est_sel == "🟢 Alcista"         and est_tf != 'alcista': break
+                    if est_sel == "🔴 Bajista"         and est_tf != 'bajista': break
+                    if cer_sel == "⬆️ Por encima de 0"  and pos_tf != 'encima':  break
+                    if cer_sel == "⬇️ Por debajo de 0"  and pos_tf != 'debajo':  break
+                    macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
+                    cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
                     icono = "🚀" if vela_alc else "💣"
                     res_confluencia.append({
                         "Ticker":      ticker,
@@ -1596,12 +1624,13 @@ if lanzar:
                         "Señal":       f"{icono} DIV + VELA ENGAÑO",
                         "Div Fuerza":  tipo_div.split("(")[1].replace(")","") if "(" in tipo_div else "-",
                         "Div Dur.":    duracion,
+                        "MACD":        f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
                         "Vela Stoch":  round(k_vela, 1),
                         "Antigüedad":  f"Hace {j} {'Mes' if tf_key=='M' else 'Sem'}",
                         "Precio":      precio,
                         "Stop Ref":    round(float(stop_vela), 2)
                     })
-                    break  # solo una confluencia por TF por ticker
+                    break
 
         # ── CRUCE EMA 50/200 ──
         if filtro_emas:
@@ -1898,9 +1927,5 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
-
-
-
-
 
 
