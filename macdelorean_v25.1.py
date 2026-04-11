@@ -1258,6 +1258,187 @@ def check_senal_paco(df, timeframe="D"):
     return resultados
 
 
+def check_patron_vela_macdelorean(df, idx=-1):
+    """
+    Detecta patrones de vela de cambio clásicos del análisis técnico japonés.
+    No requiere volumen — misma lógica de confirmación que Premium.
+    Devuelve: (encontrado, patron, direccion, stoch_k, stop)
+    """
+    if len(df) < abs(idx) + 3 or 'K' not in df.columns:
+        return False, "", "", 0, 0
+
+    curr  = df.iloc[idx]
+    prev  = df.iloc[idx - 1]
+    prev2 = df.iloc[idx - 2] if len(df) >= abs(idx) + 3 else prev
+
+    o = float(curr['Open'])
+    h = float(curr['High'])
+    l = float(curr['Low'])
+    c = float(curr['Close'])
+    k = float(curr['K']) if not pd.isna(curr['K']) else 50
+
+    o1 = float(prev['Open']);  c1 = float(prev['Close'])
+    h1 = float(prev['High']);  l1 = float(prev['Low'])
+    o2 = float(prev2['Open']); c2 = float(prev2['Close'])
+    h2 = float(prev2['High']); l2 = float(prev2['Low'])
+
+    cuerpo    = abs(c - o)
+    rango     = h - l + 1e-10
+    mecha_inf = min(o, c) - l
+    mecha_sup = h - max(o, c)
+    cuerpo1   = abs(c1 - o1)
+    rango1    = h1 - l1 + 1e-10
+    mid_prev  = (h1 + l1) / 2
+
+    es_alc = c > o
+    es_alc1 = c1 > o1
+
+    stoch_alc = k < 20
+    stoch_baj = k > 80
+
+    # ─── VELA DE ENGAÑO (reutiliza check_vela_engano) ───
+    es_eng, tipo_eng, k_eng, stop_eng = check_vela_engano(df, idx=idx)
+    if es_eng:
+        if "ALCISTA" in tipo_eng and stoch_alc:
+            return True, "🎭 Vela Engaño", "ALCISTA", k, float(min(l, l1))
+        if "BAJISTA" in tipo_eng and stoch_baj:
+            return True, "🎭 Vela Engaño", "BAJISTA", k, float(max(h, h1))
+
+    # ─── MARTILLO (alcista) ───
+    if (stoch_alc and
+        mecha_inf >= cuerpo * 2.0 and
+        mecha_sup <= cuerpo * 0.5 and
+        cuerpo >= rango * 0.1 and
+        mecha_inf >= rango * 0.55):
+        return True, "🔨 Martillo", "ALCISTA", k, float(l)
+
+    # ─── HOMBRE COLGADO (bajista — martillo en techo) ───
+    if (stoch_baj and
+        mecha_inf >= cuerpo * 2.0 and
+        mecha_sup <= cuerpo * 0.5 and
+        cuerpo >= rango * 0.1 and
+        mecha_inf >= rango * 0.55):
+        return True, "💀 Hombre Colgado", "BAJISTA", k, float(h)
+
+    # ─── MARTILLO INVERTIDO (alcista) ───
+    if (stoch_alc and
+        mecha_sup >= cuerpo * 2.0 and
+        mecha_inf <= cuerpo * 0.5 and
+        cuerpo >= rango * 0.1):
+        return True, "🔨 Martillo Invertido", "ALCISTA", k, float(l)
+
+    # ─── ESTRELLA FUGAZ (bajista) ───
+    if (stoch_baj and
+        mecha_sup >= cuerpo * 2.0 and
+        mecha_inf <= cuerpo * 0.3 and
+        cuerpo >= rango * 0.1):
+        return True, "💫 Estrella Fugaz", "BAJISTA", k, float(h)
+
+    # ─── ENVOLVENTE ALCISTA ───
+    if (stoch_alc and es_alc and not es_alc1 and
+        o <= c1 and c >= o1 and
+        cuerpo > cuerpo1 * 0.8):
+        return True, "🔁 Envolvente Alcista", "ALCISTA", k, float(l)
+
+    # ─── ENVOLVENTE BAJISTA ───
+    if (stoch_baj and not es_alc and es_alc1 and
+        o >= c1 and c <= o1 and
+        cuerpo > cuerpo1 * 0.8):
+        return True, "🔁 Envolvente Bajista", "BAJISTA", k, float(h)
+
+    # ─── HARAMI ALCISTA ───
+    if (stoch_alc and es_alc and not es_alc1 and
+        o > c1 and c < o1 and
+        cuerpo < cuerpo1 * 0.6):
+        return True, "🤰 Harami Alcista", "ALCISTA", k, float(l)
+
+    # ─── HARAMI BAJISTA ───
+    if (stoch_baj and not es_alc and es_alc1 and
+        o < c1 and c > o1 and
+        cuerpo < cuerpo1 * 0.6):
+        return True, "🤰 Harami Bajista", "BAJISTA", k, float(h)
+
+    # ─── DOJI DE GIRO ALCISTA ───
+    if (stoch_alc and
+        cuerpo <= rango * 0.08 and rango > 0):
+        return True, "✝️ Doji Alcista", "ALCISTA", k, float(l)
+
+    # ─── DOJI DE GIRO BAJISTA ───
+    if (stoch_baj and
+        cuerpo <= rango * 0.08 and rango > 0):
+        return True, "✝️ Doji Bajista", "BAJISTA", k, float(h)
+
+    # ─── MORNING STAR — Estrella de tres cuerpos alcista ───
+    # Vela bajista grande + doji/vela pequeña + vela alcista grande
+    if (stoch_alc and es_alc and
+        cuerpo >= rango * 0.5 and
+        cuerpo1 <= rango1 * 0.3 and
+        not es_alc2 if (es_alc2 := c2 > o2) else True and
+        abs(c2 - o2) >= (h2 - l2 + 1e-10) * 0.5 and
+        c > (o1 + c1) / 2):
+        return True, "⭐ Morning Star", "ALCISTA", k, float(l1)
+
+    # ─── EVENING STAR — Estrella de tres cuerpos bajista ───
+    if (stoch_baj and not es_alc and
+        cuerpo >= rango * 0.5 and
+        cuerpo1 <= rango1 * 0.3 and
+        c2 > o2 and
+        abs(c2 - o2) >= (h2 - l2 + 1e-10) * 0.5 and
+        c < (o1 + c1) / 2):
+        return True, "⭐ Evening Star", "BAJISTA", k, float(h1)
+
+    # ─── PINBAR ALCISTA ───
+    if (stoch_alc and
+        mecha_inf >= rango * 0.65 and
+        cuerpo <= rango * 0.25):
+        return True, "📍 Pinbar Alcista", "ALCISTA", k, float(l)
+
+    # ─── PINBAR BAJISTA ───
+    if (stoch_baj and
+        mecha_sup >= rango * 0.65 and
+        cuerpo <= rango * 0.25):
+        return True, "📍 Pinbar Bajista", "BAJISTA", k, float(h)
+
+    return False, "", "", k, 0
+
+
+def buscador_velas_macdelorean(pack):
+    """
+    Mismo esquema que Premium (M+W+D) pero con todos los patrones de vela.
+    Alcista: M alcista + W corrigiendo + patrón vela alcista semanal + D girando
+    Bajista: M bajista + W rebotando + patrón vela bajista semanal + D girando
+    """
+    m = pack['M']; w = pack['W']; d = pack['D']
+    if 'MACD' not in m.columns or len(m) < 2:
+        return False, "", "", 0, 0
+
+    curr_m = m.iloc[-1]; prev_m = m.iloc[-2]
+    w_curr = w.iloc[-1]; d_curr = d.iloc[-1]
+
+    m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal']) and (curr_m['MACD'] > prev_m['MACD'])
+    m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal']) and (curr_m['MACD'] < prev_m['MACD'])
+
+    for i in range(5):
+        idx = -1 - i
+        es_patron, patron, direccion, k, stop = check_patron_vela_macdelorean(w, idx=idx)
+        if not es_patron:
+            continue
+        # ALCISTA: mensual alcista + semanal corrigiendo + diario girando
+        if (m_bull and
+            direccion == "ALCISTA" and
+            w_curr['MACD'] < w_curr['Signal'] and
+            d_curr['MACD'] > d_curr['Signal']):
+            return True, f"🚗 MACDELOREAN BUY — {patron} (Hace {i} sem)", direccion, k, stop
+        # BAJISTA: mensual bajista + semanal rebotando + diario girando
+        if (m_bear and
+            direccion == "BAJISTA" and
+            w_curr['MACD'] > w_curr['Signal'] and
+            d_curr['MACD'] < d_curr['Signal']):
+            return True, f"🚗 MACDELOREAN SELL — {patron} (Hace {i} sem)", direccion, k, stop
+
+    return False, "", "", 0, 0
+
+
 # ==============================================================================
 # 3. INTERFAZ
 # ==============================================================================
@@ -1372,6 +1553,7 @@ with st.sidebar:
     filtro_emas        = st.checkbox("📈 Cruce EMA 50/200",              value=False, key="f6")
     filtro_puntob      = st.checkbox("🔵 Módulo de Arranque (Punto B)",  value=False, key="f7")
     filtro_paco        = st.checkbox("🌟 Señal de Paco Pérez",            value=False, key="f8")
+    filtro_macdelorean = st.checkbox("🚗 Velas Macdelorean (M+W+D)",      value=False, key="f9")
 
     if filtro_puntob:
         st.markdown("**Timeframes Punto B:**")
@@ -1454,7 +1636,7 @@ if lanzar:
     if not indices_seleccionados:
         st.error("⚠️ Selecciona al menos un índice.")
         st.stop()
-    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob or filtro_paco):
+    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob or filtro_paco or filtro_macdelorean):
         st.error("⚠️ Activa al menos un filtro de búsqueda.")
         st.stop()
 
@@ -1472,6 +1654,7 @@ if lanzar:
     res_emas        = []
     res_puntob      = []
     res_paco        = []
+    res_macdelorean = []
 
     progress_bar = st.progress(0)
     status_text  = st.empty()
@@ -1569,6 +1752,20 @@ if lanzar:
                     "Diario":   f"{icono_estado(estado_d)} {estado_d.capitalize()} {icono_cero(pos_d)}",
                     "Precio":   precio
                 })
+
+        # ── VELAS MACDELOREAN ──
+        if filtro_macdelorean:
+            es_mac, txt_mac, dir_mac, k_mac, stop_mac = buscador_velas_macdelorean(pack)
+            if es_mac:
+                if (dir_mac == "ALCISTA" and dir_alcista) or (dir_mac == "BAJISTA" and dir_bajista):
+                    res_macdelorean.append({
+                        "Ticker":    ticker,
+                        "Señal":     txt_mac,
+                        "Dirección": dir_mac,
+                        "Stoch K":   round(k_mac, 1),
+                        "Stop Ref":  round(float(stop_mac), 2),
+                        "Precio":    precio
+                    })
 
         # ── SEÑAL DE PACO PÉREZ ──
         if filtro_paco:
@@ -1740,6 +1937,7 @@ if lanzar:
     if filtro_emas:         tab_labels.append(f"📈 EMA CROSS ({len(res_emas)})")
     if filtro_puntob:       tab_labels.append(f"🔵 PUNTO B ({len(res_puntob)})")
     if filtro_paco:         tab_labels.append(f"🌟 PACO PÉREZ ({len(res_paco)})")
+    if filtro_macdelorean:  tab_labels.append(f"🚗 MACDELOREAN ({len(res_macdelorean)})")
 
     tabs = st.tabs(tab_labels)
     tab_idx = 0
@@ -1871,6 +2069,22 @@ if lanzar:
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "paco_perez.csv", "text/csv")
             else:
                 st.info("Sin señales Paco Pérez detectadas. El mercado no presenta configuraciones de alta calidad ahora mismo.")
+
+    if filtro_macdelorean:
+        with tabs[tab_idx]:
+            if res_macdelorean:
+                df_out = pd.DataFrame(res_macdelorean)
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
+                if not alc.empty:
+                    st.markdown("#### 🚗🟢 VELAS MACDELOREAN — BUY")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                if not baj.empty:
+                    st.markdown("#### 🚗🔴 VELAS MACDELOREAN — SELL")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "macdelorean_velas.csv", "text/csv")
+            else:
+                st.info("Sin señales Velas Macdelorean. Espera la confluencia perfecta M+W+D.")
 
 else:
     st.markdown("<br>", unsafe_allow_html=True)
