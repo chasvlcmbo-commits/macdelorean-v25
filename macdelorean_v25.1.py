@@ -1261,27 +1261,69 @@ def check_senal_paco(df, timeframe="D"):
 def check_div_stoch(df, idx, direccion):
     """
     Detecta divergencia de estocástico en las últimas 4 velas.
-    Alcista: primer mínimo stoch < 20, segundo mínimo más alto.
-    Bajista: primer máximo stoch > 80, segundo máximo más bajo.
+    Alcista:  primer mínimo del stoch debe estar en sobreventa < 20
+              y el segundo mínimo (más reciente) debe ser más alto.
+    Bajista:  primer máximo del stoch debe estar en sobrecompra > 80
+              y el segundo máximo (más reciente) debe ser más bajo.
+
+    vals[0] = vela actual (más reciente)
+    vals[3] = vela 3 posiciones atrás (más antigua)
     """
     if 'K' not in df.columns or len(df) < abs(idx) + 5:
         return False
-    # Extraer últimas 4 velas desde idx
-    vals = [float(df['K'].iloc[idx - j]) if not pd.isna(df['K'].iloc[idx - j]) else 50
-            for j in range(4)]
+
+    # Extraer 4 valores de estocástico — vals[0] más reciente, vals[3] más antiguo
+    vals = []
+    for j in range(4):
+        v = df['K'].iloc[idx - j]
+        vals.append(float(v) if not pd.isna(v) else 50)
+
     if direccion == 'alcista':
-        # Buscar dos mínimos donde el primero esté en sobreventa < 20
-        for i in range(len(vals) - 1):
-            for j in range(i + 1, len(vals)):
-                if vals[j] < 20 and vals[i] > vals[j]:
-                    return True  # primer mínimo (más antiguo) en sobreventa, segundo más alto
+        # Buscar: un mínimo antiguo en sobreventa (<20)
+        # y un mínimo reciente más alto (divergencia alcista)
+        # Comparar pares donde el antiguo (mayor índice) está en sobreventa
+        # y el más reciente (menor índice) es mayor
+        for reciente in range(len(vals) - 1):
+            for antiguo in range(reciente + 1, len(vals)):
+                # El mínimo antiguo debe estar en sobreventa
+                if vals[antiguo] < 20:
+                    # El mínimo reciente debe ser más alto (divergencia)
+                    if vals[reciente] > vals[antiguo]:
+                        # Verificar que ambos son mínimos locales relativos
+                        # (menores que sus vecinos inmediatos dentro del rango)
+                        es_min_antiguo = all(
+                            vals[antiguo] <= vals[k]
+                            for k in range(len(vals))
+                            if k != antiguo and abs(k - antiguo) <= 1
+                        )
+                        es_min_reciente = all(
+                            vals[reciente] <= vals[k]
+                            for k in range(reciente - 1, reciente + 2)
+                            if 0 <= k < len(vals) and k != reciente
+                        )
+                        if es_min_antiguo and es_min_reciente:
+                            return True
         return False
-    else:
-        # Buscar dos máximos donde el primero esté en sobrecompra > 80
-        for i in range(len(vals) - 1):
-            for j in range(i + 1, len(vals)):
-                if vals[j] > 80 and vals[i] < vals[j]:
-                    return True  # primer máximo (más antiguo) en sobrecompra, segundo más bajo
+
+    else:  # bajista
+        # El máximo antiguo debe estar en sobrecompra (>80)
+        # y el máximo reciente debe ser más bajo (divergencia)
+        for reciente in range(len(vals) - 1):
+            for antiguo in range(reciente + 1, len(vals)):
+                if vals[antiguo] > 80:
+                    if vals[reciente] < vals[antiguo]:
+                        es_max_antiguo = all(
+                            vals[antiguo] >= vals[k]
+                            for k in range(len(vals))
+                            if k != antiguo and abs(k - antiguo) <= 1
+                        )
+                        es_max_reciente = all(
+                            vals[reciente] >= vals[k]
+                            for k in range(reciente - 1, reciente + 2)
+                            if 0 <= k < len(vals) and k != reciente
+                        )
+                        if es_max_antiguo and es_max_reciente:
+                            return True
         return False
 
 
@@ -2207,5 +2249,3 @@ else:
                     background: linear-gradient(90deg, #3A2A0A, transparent); vertical-align:middle; margin-left:14px;'></div>
     </div>
     """, unsafe_allow_html=True)
-
-
