@@ -1636,10 +1636,18 @@ with st.sidebar:
     st.markdown("<div style='height:12px; border-top:1px solid #1A1208; margin-top:10px;'></div>", unsafe_allow_html=True)
     st.markdown("""<div style='font-family: Cinzel, serif; font-size: 0.72rem; color: #8B6914; letter-spacing: 4px; padding: 8px 0 8px 0; border-bottom: 1px solid #1A1208;'>◆ &nbsp;FILTROS DE BÚSQUEDA</div>""", unsafe_allow_html=True)
     filtro_premium   = st.checkbox("💎 Operaciones Premium (M+W+D)", value=True,  key="f1")
-    filtro_velas     = st.checkbox("🕯️ Velas de Engaño (W/M)",       value=True,  key="f2")
+    filtro_velas     = st.checkbox("🕯️ Velas de Cambio (D/W/M)",     value=True,  key="f2")
     filtro_diverg    = st.checkbox("📐 Divergencias MACD",            value=False, key="f3")
     filtro_macd_combo  = st.checkbox("📡 Radar MACD por Timeframe",    value=False, key="f4")
     filtro_confluencia = st.checkbox("💥 Confluencia Div + Vela",       value=True,  key="f5")
+
+    if filtro_velas:
+        st.markdown("**Timeframes Velas de Cambio:**")
+        vc_d = st.checkbox("Diario",  value=False, key="vc_d")
+        vc_w = st.checkbox("Semanal", value=True,  key="vc_w")
+        vc_m = st.checkbox("Mensual", value=True,  key="vc_m")
+    else:
+        vc_d = vc_w = vc_m = False
     filtro_emas        = st.checkbox("📈 Cruce EMA 50/200",              value=False, key="f6")
     filtro_puntob      = st.checkbox("🔵 Módulo de Arranque (Punto B)",  value=False, key="f7")
     filtro_paco        = st.checkbox("🌟 Señal de Paco Pérez",            value=False, key="f8")
@@ -1772,16 +1780,26 @@ if lanzar:
                     ph_prem.dataframe(pd.DataFrame(res_prem), use_container_width=True)
 
         if filtro_velas:
-            for tf_key, tf_name in [('M', 'MENSUAL'), ('W', 'SEMANAL')]:
+            tfs_velas = []
+            if vc_m: tfs_velas.append(('M', 'MENSUAL'))
+            if vc_w: tfs_velas.append(('W', 'SEMANAL'))
+            if vc_d: tfs_velas.append(('D', 'DIARIO'))
+            for tf_key, tf_name in tfs_velas:
                 for j in range(4):
-                    es, t, k, s = check_vela_engano(pack[tf_key], idx=-1-j)
-                    if es:
-                        es_alc = "ALCISTA" in t
+                    es_patron, patron, direccion_p, k_p, stop_p = check_patron_vela_macdelorean(pack[tf_key], idx=-1-j)
+                    if es_patron:
+                        es_alc = direccion_p == "ALCISTA"
                         if (es_alc and dir_alcista) or (not es_alc and dir_bajista):
+                            unidad = 'Mes' if tf_key=='M' else ('Sem' if tf_key=='W' else 'Día')
                             res_velas.append({
-                                "Ticker": ticker, "TF": tf_name, "Señal": t,
-                                "Antigüedad": f"Hace {j} {'Mes' if tf_key=='M' else 'Sem'}",
-                                "Stoch K": round(k, 1), "Precio": precio
+                                "Ticker":     ticker,
+                                "TF":         tf_name,
+                                "Patrón":     patron,
+                                "Dirección":  direccion_p,
+                                "Antigüedad": f"Hace {j} {unidad}",
+                                "Stoch K":    round(k_p, 1),
+                                "Precio":     precio,
+                                "Stop Ref":   round(float(stop_p), 2)
                             })
                             ph_velas.dataframe(pd.DataFrame(res_velas), use_container_width=True)
                         break
@@ -2038,7 +2056,7 @@ if lanzar:
 
     tab_labels = []
     if filtro_premium:    tab_labels.append(f"💎 PREMIUM ({len(res_prem)})")
-    if filtro_velas:      tab_labels.append(f"🕯️ VELAS ({len(res_velas)})")
+    if filtro_velas:      tab_labels.append(f"🕯️ VELAS CAMBIO ({len(res_velas)})")
     if filtro_diverg:     tab_labels.append(f"📐 DIVERGENCIAS ({len(res_diverg)})")
     if filtro_macd_combo:   tab_labels.append(f"📡 MACD COMBO ({len(res_macd)})")
     if filtro_confluencia:  tab_labels.append(f"💥 CONFLUENCIA ({len(res_confluencia)})")
@@ -2064,12 +2082,12 @@ if lanzar:
         with tabs[tab_idx]:
             if res_velas:
                 df_out = pd.DataFrame(res_velas)
-                alc = df_out[df_out['Señal'].str.contains("ALCISTA")]
-                baj = df_out[df_out['Señal'].str.contains("BAJISTA")]
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
                 if not alc.empty:
-                    st.markdown("#### 🟢 ALCISTAS"); st.dataframe(alc, use_container_width=True)
+                    st.markdown("#### 🟢 ALCISTAS"); st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
                 if not baj.empty:
-                    st.markdown("#### 🔴 BAJISTAS"); st.dataframe(baj, use_container_width=True)
+                    st.markdown("#### 🔴 BAJISTAS"); st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "velas.csv", "text/csv")
             else:
                 st.info("Sin velas de engaño detectadas.")
