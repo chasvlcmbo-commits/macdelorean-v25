@@ -922,30 +922,51 @@ def check_divergencia(df, timeframe="D"):
             return f"Hace {velas_atras} meses"
 
     total = len(df)
+    low_serie  = df['Low']
+    high_serie = df['High']
+
+    # Buscar el mínimo/máximo de precio en una ventana alrededor del swing del MACD
+    def min_precio_zona(pos, ventana=2):
+        inicio = max(0, pos - ventana)
+        fin    = min(total, pos + ventana + 1)
+        return float(low_serie.iloc[inicio:fin].min())
+
+    def max_precio_zona(pos, ventana=2):
+        inicio = max(0, pos - ventana)
+        fin    = min(total, pos + ventana + 1)
+        return float(high_serie.iloc[inicio:fin].max())
 
     # ── DIVERGENCIA ALCISTA ──
+    # Precio hace mínimos más bajos (Low) y MACD hace mínimos más altos
     mins = encontrar_swings(macd_serie, es_minimo=True, min_dist=min_swing_sep)
     mins_validos = [i for i in mins if macd_serie.iloc[i] < -umbral_0]
 
     if len(mins_validos) >= 2:
         p1, p2 = mins_validos[-2], mins_validos[-1]
         if (p2 - p1) >= min_velas:
-            if price_serie.iloc[p2] < price_serie.iloc[p1] and macd_serie.iloc[p2] > macd_serie.iloc[p1]:
-                fuerza    = round(abs(macd_serie.iloc[p2] - macd_serie.iloc[p1]) / rango_macd * 100, 1)
-                duracion  = formatear_duracion(p2 - p1, timeframe)
+            precio_min_p1 = min_precio_zona(p1)
+            precio_min_p2 = min_precio_zona(p2)
+            # Divergencia real: precio hace mínimo MÁS BAJO, MACD hace mínimo MÁS ALTO
+            if precio_min_p2 < precio_min_p1 and macd_serie.iloc[p2] > macd_serie.iloc[p1]:
+                fuerza     = round(abs(macd_serie.iloc[p2] - macd_serie.iloc[p1]) / rango_macd * 100, 1)
+                duracion   = formatear_duracion(p2 - p1, timeframe)
                 antiguedad = formatear_antiguedad(p2, total, timeframe)
                 return True, f"DIV ALCISTA 📈 ({fuerza}%)", duracion, antiguedad
 
     # ── DIVERGENCIA BAJISTA ──
+    # Precio hace máximos más altos (High) y MACD hace máximos más bajos
     maxs = encontrar_swings(macd_serie, es_minimo=False, min_dist=min_swing_sep)
     maxs_validos = [i for i in maxs if macd_serie.iloc[i] > umbral_0]
 
     if len(maxs_validos) >= 2:
         p1, p2 = maxs_validos[-2], maxs_validos[-1]
         if (p2 - p1) >= min_velas:
-            if price_serie.iloc[p2] > price_serie.iloc[p1] and macd_serie.iloc[p2] < macd_serie.iloc[p1]:
-                fuerza    = round(abs(macd_serie.iloc[p1] - macd_serie.iloc[p2]) / rango_macd * 100, 1)
-                duracion  = formatear_duracion(p2 - p1, timeframe)
+            precio_max_p1 = max_precio_zona(p1)
+            precio_max_p2 = max_precio_zona(p2)
+            # Divergencia real: precio hace máximo MÁS ALTO, MACD hace máximo MÁS BAJO
+            if precio_max_p2 > precio_max_p1 and macd_serie.iloc[p2] < macd_serie.iloc[p1]:
+                fuerza     = round(abs(macd_serie.iloc[p1] - macd_serie.iloc[p2]) / rango_macd * 100, 1)
+                duracion   = formatear_duracion(p2 - p1, timeframe)
                 antiguedad = formatear_antiguedad(p2, total, timeframe)
                 return True, f"DIV BAJISTA 📉 ({fuerza}%)", duracion, antiguedad
 
@@ -1261,69 +1282,27 @@ def check_senal_paco(df, timeframe="D"):
 def check_div_stoch(df, idx, direccion):
     """
     Detecta divergencia de estocástico en las últimas 4 velas.
-    Alcista:  primer mínimo del stoch debe estar en sobreventa < 20
-              y el segundo mínimo (más reciente) debe ser más alto.
-    Bajista:  primer máximo del stoch debe estar en sobrecompra > 80
-              y el segundo máximo (más reciente) debe ser más bajo.
-
-    vals[0] = vela actual (más reciente)
-    vals[3] = vela 3 posiciones atrás (más antigua)
+    Alcista: primer mínimo stoch < 20, segundo mínimo más alto.
+    Bajista: primer máximo stoch > 80, segundo máximo más bajo.
     """
     if 'K' not in df.columns or len(df) < abs(idx) + 5:
         return False
-
-    # Extraer 4 valores de estocástico — vals[0] más reciente, vals[3] más antiguo
-    vals = []
-    for j in range(4):
-        v = df['K'].iloc[idx - j]
-        vals.append(float(v) if not pd.isna(v) else 50)
-
+    # Extraer últimas 4 velas desde idx
+    vals = [float(df['K'].iloc[idx - j]) if not pd.isna(df['K'].iloc[idx - j]) else 50
+            for j in range(4)]
     if direccion == 'alcista':
-        # Buscar: un mínimo antiguo en sobreventa (<20)
-        # y un mínimo reciente más alto (divergencia alcista)
-        # Comparar pares donde el antiguo (mayor índice) está en sobreventa
-        # y el más reciente (menor índice) es mayor
-        for reciente in range(len(vals) - 1):
-            for antiguo in range(reciente + 1, len(vals)):
-                # El mínimo antiguo debe estar en sobreventa
-                if vals[antiguo] < 20:
-                    # El mínimo reciente debe ser más alto (divergencia)
-                    if vals[reciente] > vals[antiguo]:
-                        # Verificar que ambos son mínimos locales relativos
-                        # (menores que sus vecinos inmediatos dentro del rango)
-                        es_min_antiguo = all(
-                            vals[antiguo] <= vals[k]
-                            for k in range(len(vals))
-                            if k != antiguo and abs(k - antiguo) <= 1
-                        )
-                        es_min_reciente = all(
-                            vals[reciente] <= vals[k]
-                            for k in range(reciente - 1, reciente + 2)
-                            if 0 <= k < len(vals) and k != reciente
-                        )
-                        if es_min_antiguo and es_min_reciente:
-                            return True
+        # Buscar dos mínimos donde el primero esté en sobreventa < 20
+        for i in range(len(vals) - 1):
+            for j in range(i + 1, len(vals)):
+                if vals[j] < 20 and vals[i] > vals[j]:
+                    return True  # primer mínimo (más antiguo) en sobreventa, segundo más alto
         return False
-
-    else:  # bajista
-        # El máximo antiguo debe estar en sobrecompra (>80)
-        # y el máximo reciente debe ser más bajo (divergencia)
-        for reciente in range(len(vals) - 1):
-            for antiguo in range(reciente + 1, len(vals)):
-                if vals[antiguo] > 80:
-                    if vals[reciente] < vals[antiguo]:
-                        es_max_antiguo = all(
-                            vals[antiguo] >= vals[k]
-                            for k in range(len(vals))
-                            if k != antiguo and abs(k - antiguo) <= 1
-                        )
-                        es_max_reciente = all(
-                            vals[reciente] >= vals[k]
-                            for k in range(reciente - 1, reciente + 2)
-                            if 0 <= k < len(vals) and k != reciente
-                        )
-                        if es_max_antiguo and es_max_reciente:
-                            return True
+    else:
+        # Buscar dos máximos donde el primero esté en sobrecompra > 80
+        for i in range(len(vals) - 1):
+            for j in range(i + 1, len(vals)):
+                if vals[j] > 80 and vals[i] < vals[j]:
+                    return True  # primer máximo (más antiguo) en sobrecompra, segundo más bajo
         return False
 
 
@@ -2158,6 +2137,7 @@ if lanzar:
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "punto_b.csv", "text/csv")
             else:
                 st.info("No se han detectado módulos de arranque válidos.")
+        tab_idx += 1
 
     if filtro_paco:
         with tabs[tab_idx]:
@@ -2174,6 +2154,7 @@ if lanzar:
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "paco_perez.csv", "text/csv")
             else:
                 st.info("Sin señales Paco Pérez detectadas. El mercado no presenta configuraciones de alta calidad ahora mismo.")
+        tab_idx += 1
 
     if filtro_macdelorean:
         with tabs[tab_idx]:
