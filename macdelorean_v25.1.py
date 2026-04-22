@@ -1529,6 +1529,58 @@ def buscador_velas_macdelorean(pack):
     return False, "", "", 0, 0
 
 
+
+def check_sabroson(pack, periodo_ema=200, margen_pct=2.0):
+    """
+    Busca toque de EMA en diario con MACD mensual confirmando dirección.
+    Alcista: MACD mensual > 0 y > signal + precio toca EMA con tolerancia margen_pct
+    Bajista: MACD mensual < 0 y < signal + precio toca EMA con tolerancia margen_pct
+    Devuelve (encontrado, direccion, precio_ema, distancia_pct)
+    """
+    m = pack['M']; d = pack['D']
+    if 'MACD' not in m.columns or len(m) < 2 or len(d) < periodo_ema + 5:
+        return False, "", 0, 0
+
+    curr_m = m.iloc[-1]
+    m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal'])
+    m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal'])
+
+    if not (m_bull or m_bear):
+        return False, "", 0, 0
+
+    # Calcular EMA exponencial diaria
+    ema = d['Close'].ewm(span=periodo_ema, adjust=False).mean()
+    ema_actual = float(ema.iloc[-1])
+
+    curr_d = d.iloc[-1]
+    low  = float(curr_d['Low'])
+    high = float(curr_d['High'])
+    close = float(curr_d['Close'])
+
+    if ema_actual <= 0:
+        return False, "", 0, 0
+
+    margen = ema_actual * (margen_pct / 100.0)
+    zona_baja = ema_actual - margen
+    zona_alta = ema_actual + margen
+
+    # Toque real: la EMA está dentro del rango de la vela (mecha la cruza)
+    toque_directo = (low <= ema_actual <= high)
+    # O el cierre está cerca dentro del margen
+    cerca = (zona_baja <= close <= zona_alta)
+    toca = toque_directo or cerca
+
+    if not toca:
+        return False, "", 0, 0
+
+    distancia_pct = round(abs(close - ema_actual) / ema_actual * 100, 2)
+
+    if m_bull:
+        return True, "ALCISTA", round(ema_actual, 2), distancia_pct
+    else:
+        return True, "BAJISTA", round(ema_actual, 2), distancia_pct
+
+
 # ==============================================================================
 # 3. INTERFAZ
 # ==============================================================================
@@ -1652,6 +1704,9 @@ with st.sidebar:
     filtro_puntob      = st.checkbox("🔵 Módulo de Arranque (Punto B)",  value=False, key="f7")
     filtro_paco        = st.checkbox("🌟 Señal de Paco Pérez",            value=False, key="f8")
     filtro_macdelorean = st.checkbox("🚗 Velas Macdelorean (M+W+D)",      value=False, key="f9")
+    filtro_sabroson200 = st.checkbox("🌮 Operaciones Sabrosón 200",        value=False, key="f10")
+    filtro_sabroson50  = st.checkbox("🌯 Operaciones Sabrosón 50",         value=False, key="f11")
+    filtro_conf_master = st.checkbox("💎 Confluencias Master",              value=False, key="f12")
 
     if filtro_puntob:
         st.markdown("**Timeframes Punto B:**")
@@ -1734,7 +1789,7 @@ if lanzar:
     if not indices_seleccionados:
         st.error("⚠️ Selecciona al menos un índice.")
         st.stop()
-    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob or filtro_paco or filtro_macdelorean):
+    if not (filtro_premium or filtro_velas or filtro_diverg or filtro_macd_combo or filtro_confluencia or filtro_emas or filtro_puntob or filtro_paco or filtro_macdelorean or filtro_sabroson200 or filtro_sabroson50 or filtro_conf_master):
         st.error("⚠️ Activa al menos un filtro de búsqueda.")
         st.stop()
 
@@ -1753,6 +1808,9 @@ if lanzar:
     res_puntob      = []
     res_paco        = []
     res_macdelorean = []
+    res_sabroson200 = []
+    res_sabroson50  = []
+    res_conf_master = []
 
     progress_bar = st.progress(0)
     status_text  = st.empty()
@@ -1874,6 +1932,85 @@ if lanzar:
                         "Stop Ref":  round(float(stop_mac), 2),
                         "Precio":    precio
                     })
+
+        # ── OPERACIONES SABROSÓN 200 ──
+        if filtro_sabroson200:
+            es_s, dir_s, precio_ema, dist = check_sabroson(pack, periodo_ema=200, margen_pct=2.0)
+            if es_s:
+                if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
+                    res_sabroson200.append({
+                        "Ticker":        ticker,
+                        "Dirección":     dir_s,
+                        "Señal":         "🌮 TOQUE EMA 200",
+                        "EMA 200":       precio_ema,
+                        "Distancia %":   dist,
+                        "Precio":        precio
+                    })
+
+        # ── OPERACIONES SABROSÓN 50 ──
+        if filtro_sabroson50:
+            es_s, dir_s, precio_ema, dist = check_sabroson(pack, periodo_ema=50, margen_pct=2.0)
+            if es_s:
+                if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
+                    res_sabroson50.append({
+                        "Ticker":        ticker,
+                        "Dirección":     dir_s,
+                        "Señal":         "🌯 TOQUE EMA 50",
+                        "EMA 50":        precio_ema,
+                        "Distancia %":   dist,
+                        "Precio":        precio
+                    })
+
+        # ── CONFLUENCIAS MASTER (Div + SOLO Vela de Engaño) ──
+        if filtro_conf_master:
+            for tf_key, tf_name, est_sel, cer_sel in [
+                ('D', 'DIARIO',  div_macd_d_est, div_macd_d_cer),
+                ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
+                ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
+            ]:
+                es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
+                if not es_div:
+                    continue
+                div_alc = "ALCISTA" in tipo_div
+                if div_alc and not dir_alcista: continue
+                if not div_alc and not dir_bajista: continue
+
+                est_tf, pos_tf = check_macd_estado(pack[tf_key])
+                if est_sel == "🟢 Alcista"         and est_tf != 'alcista': continue
+                if est_sel == "🔴 Bajista"         and est_tf != 'bajista': continue
+                if cer_sel == "⬆️ Por encima de 0"  and pos_tf != 'encima':  continue
+                if cer_sel == "⬇️ Por debajo de 0"  and pos_tf != 'debajo':  continue
+
+                # Solo vela de engaño
+                vela_encontrada = None
+                for j in range(4):
+                    es_vela, tipo_vela, k_vela, stop_vela = check_vela_engano(pack[tf_key], idx=-1-j)
+                    if es_vela:
+                        vela_alc = "ALCISTA" in tipo_vela
+                        if vela_alc == div_alc:
+                            vela_encontrada = {'tipo': tipo_vela, 'k': k_vela, 'stop': stop_vela, 'j': j}
+                            break
+
+                if vela_encontrada is None:
+                    continue
+
+                macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
+                cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
+                icono     = "🚀" if div_alc else "💣"
+                unidad    = 'Mes' if tf_key=='M' else ('Sem' if tf_key=='W' else 'Día')
+                res_conf_master.append({
+                    "Ticker":     ticker,
+                    "TF":         tf_name,
+                    "Dirección":  "ALCISTA" if div_alc else "BAJISTA",
+                    "Señal":      f"{icono} DIV + VELA ENGAÑO",
+                    "Div Fuerza": tipo_div.split("(")[1].replace(")","") if "(" in tipo_div else "-",
+                    "Div Dur.":   duracion,
+                    "MACD":       f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
+                    "Vela Stoch": round(vela_encontrada['k'], 1),
+                    "Antigüedad": f"Hace {vela_encontrada['j']} {unidad}",
+                    "Precio":     precio,
+                    "Stop Ref":   round(float(vela_encontrada['stop']), 2)
+                })
 
         # ── SEÑAL DE PACO PÉREZ ──
         if filtro_paco:
@@ -2064,6 +2201,9 @@ if lanzar:
     if filtro_puntob:       tab_labels.append(f"🔵 PUNTO B ({len(res_puntob)})")
     if filtro_paco:         tab_labels.append(f"🌟 PACO PÉREZ ({len(res_paco)})")
     if filtro_macdelorean:  tab_labels.append(f"🚗 MACDELOREAN ({len(res_macdelorean)})")
+    if filtro_sabroson200:  tab_labels.append(f"🌮 SABROSÓN 200 ({len(res_sabroson200)})")
+    if filtro_sabroson50:   tab_labels.append(f"🌯 SABROSÓN 50 ({len(res_sabroson50)})")
+    if filtro_conf_master:  tab_labels.append(f"💎 CONF MASTER ({len(res_conf_master)})")
 
     tabs = st.tabs(tab_labels)
     tab_idx = 0
@@ -2213,6 +2353,57 @@ if lanzar:
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "macdelorean_velas.csv", "text/csv")
             else:
                 st.info("Sin señales Velas Macdelorean. Espera la confluencia perfecta M+W+D.")
+        tab_idx += 1
+
+    if filtro_sabroson200:
+        with tabs[tab_idx]:
+            if res_sabroson200:
+                df_out = pd.DataFrame(res_sabroson200)
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
+                if not alc.empty:
+                    st.markdown("#### 🌮🟢 SABROSÓN 200 — ALCISTAS")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                if not baj.empty:
+                    st.markdown("#### 🌮🔴 SABROSÓN 200 — BAJISTAS")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "sabroson_200.csv", "text/csv")
+            else:
+                st.info("Sin activos tocando la EMA 200 con MACD mensual alineado.")
+        tab_idx += 1
+
+    if filtro_sabroson50:
+        with tabs[tab_idx]:
+            if res_sabroson50:
+                df_out = pd.DataFrame(res_sabroson50)
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
+                if not alc.empty:
+                    st.markdown("#### 🌯🟢 SABROSÓN 50 — ALCISTAS")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                if not baj.empty:
+                    st.markdown("#### 🌯🔴 SABROSÓN 50 — BAJISTAS")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "sabroson_50.csv", "text/csv")
+            else:
+                st.info("Sin activos tocando la EMA 50 con MACD mensual alineado.")
+        tab_idx += 1
+
+    if filtro_conf_master:
+        with tabs[tab_idx]:
+            if res_conf_master:
+                df_out = pd.DataFrame(res_conf_master)
+                alc = df_out[df_out['Dirección'] == 'ALCISTA']
+                baj = df_out[df_out['Dirección'] == 'BAJISTA']
+                if not alc.empty:
+                    st.markdown("#### 💎🟢 CONFLUENCIAS MASTER — ALCISTAS")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                if not baj.empty:
+                    st.markdown("#### 💎🔴 CONFLUENCIAS MASTER — BAJISTAS")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "confluencias_master.csv", "text/csv")
+            else:
+                st.info("Sin confluencias master. Las mejores señales llegan a quien espera.")
 
 else:
     st.markdown("<br>", unsafe_allow_html=True)
