@@ -948,7 +948,10 @@ def check_divergencia(df, timeframe="D"):
             precio_min_p2 = min_precio_zona(p2)
             # Divergencia real: precio hace mínimo MÁS BAJO, MACD hace mínimo MÁS ALTO
             if precio_min_p2 < precio_min_p1 and macd_serie.iloc[p2] > macd_serie.iloc[p1]:
-                fuerza     = round(abs(macd_serie.iloc[p2] - macd_serie.iloc[p1]) / rango_macd * 100, 1)
+                fuerza = round(abs(macd_serie.iloc[p2] - macd_serie.iloc[p1]) / rango_macd * 100, 1)
+                # Filtro mínimo de fuerza — divergencias débiles son ruido
+                if fuerza < 10.0:
+                    return False, "", "", ""
                 duracion   = formatear_duracion(p2 - p1, timeframe)
                 antiguedad = formatear_antiguedad(p2, total, timeframe)
                 return True, f"DIV ALCISTA 📈 ({fuerza}%)", duracion, antiguedad
@@ -965,7 +968,10 @@ def check_divergencia(df, timeframe="D"):
             precio_max_p2 = max_precio_zona(p2)
             # Divergencia real: precio hace máximo MÁS ALTO, MACD hace máximo MÁS BAJO
             if precio_max_p2 > precio_max_p1 and macd_serie.iloc[p2] < macd_serie.iloc[p1]:
-                fuerza     = round(abs(macd_serie.iloc[p1] - macd_serie.iloc[p2]) / rango_macd * 100, 1)
+                fuerza = round(abs(macd_serie.iloc[p1] - macd_serie.iloc[p2]) / rango_macd * 100, 1)
+                # Filtro mínimo de fuerza — divergencias débiles son ruido
+                if fuerza < 10.0:
+                    return False, "", "", ""
                 duracion   = formatear_duracion(p2 - p1, timeframe)
                 antiguedad = formatear_antiguedad(p2, total, timeframe)
                 return True, f"DIV BAJISTA 📉 ({fuerza}%)", duracion, antiguedad
@@ -1876,6 +1882,7 @@ if lanzar:
         # ── CONFLUENCIA: Divergencia MACD + Patrón de Vela mismo TF ──
         if filtro_confluencia:
             for tf_key, tf_name, est_sel, cer_sel in [
+                ('D', 'DIARIO',  div_macd_d_est, div_macd_d_cer),
                 ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
                 ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
             ]:
@@ -1928,7 +1935,7 @@ if lanzar:
                     "Div Dur.":    duracion,
                     "MACD":        f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
                     "Vela Stoch":  round(patron_encontrado['k'], 1),
-                    "Antigüedad":  f"Hace {patron_encontrado['j']} {'Mes' if tf_key=='M' else 'Sem'}",
+                    "Antigüedad":  f"Hace {patron_encontrado['j']} {'Mes' if tf_key=='M' else ('Sem' if tf_key=='W' else 'Día')}",
                     "Precio":      precio,
                     "Stop Ref":    round(float(patron_encontrado['stop']), 2)
                 })
