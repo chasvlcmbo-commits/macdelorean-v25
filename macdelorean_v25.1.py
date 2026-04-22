@@ -1873,48 +1873,65 @@ if lanzar:
                             "Precio":     precio
                         })
 
-        # ── CONFLUENCIA: Divergencia + Vela de Engaño mismo TF ──
+        # ── CONFLUENCIA: Divergencia MACD + Patrón de Vela mismo TF ──
         if filtro_confluencia:
             for tf_key, tf_name, est_sel, cer_sel in [
                 ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
                 ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
             ]:
+                # Primero verificar si hay divergencia en este TF
+                es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
+                if not es_div:
+                    continue
+                div_alc = "ALCISTA" in tipo_div
+
+                # Filtro dirección global
+                if div_alc and not dir_alcista: continue
+                if not div_alc and not dir_bajista: continue
+
+                # Filtro MACD
+                est_tf, pos_tf = check_macd_estado(pack[tf_key])
+                if est_sel == "🟢 Alcista"         and est_tf != 'alcista': continue
+                if est_sel == "🔴 Bajista"         and est_tf != 'bajista': continue
+                if cer_sel == "⬆️ Por encima de 0"  and pos_tf != 'encima':  continue
+                if cer_sel == "⬇️ Por debajo de 0"  and pos_tf != 'debajo':  continue
+
+                # Buscar CUALQUIER patrón de vela en las últimas 4 velas
+                patron_encontrado = None
                 for j in range(4):
-                    es_vela, tipo_vela, k_vela, stop_vela = check_vela_engano(pack[tf_key], idx=-1-j)
-                    if not es_vela:
-                        continue
-                    es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
-                    if not es_div:
-                        break
-                    vela_alc = "ALCISTA" in tipo_vela
-                    div_alc  = "ALCISTA" in tipo_div
-                    if vela_alc != div_alc:
-                        break
-                    if vela_alc and not dir_alcista: break
-                    if not vela_alc and not dir_bajista: break
-                    # Filtro MACD
-                    est_tf, pos_tf = check_macd_estado(pack[tf_key])
-                    if est_sel == "🟢 Alcista"         and est_tf != 'alcista': break
-                    if est_sel == "🔴 Bajista"         and est_tf != 'bajista': break
-                    if cer_sel == "⬆️ Por encima de 0"  and pos_tf != 'encima':  break
-                    if cer_sel == "⬇️ Por debajo de 0"  and pos_tf != 'debajo':  break
-                    macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
-                    cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
-                    icono = "🚀" if vela_alc else "💣"
-                    res_confluencia.append({
-                        "Ticker":      ticker,
-                        "TF":          tf_name,
-                        "Dirección":   f"{'🟢 ALCISTA' if vela_alc else '🔴 BAJISTA'}",
-                        "Señal":       f"{icono} DIV + VELA ENGAÑO",
-                        "Div Fuerza":  tipo_div.split("(")[1].replace(")","") if "(" in tipo_div else "-",
-                        "Div Dur.":    duracion,
-                        "MACD":        f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
-                        "Vela Stoch":  round(k_vela, 1),
-                        "Antigüedad":  f"Hace {j} {'Mes' if tf_key=='M' else 'Sem'}",
-                        "Precio":      precio,
-                        "Stop Ref":    round(float(stop_vela), 2)
-                    })
-                    break
+                    es_patron, patron, direccion_p, k_p, stop_p = check_patron_vela_macdelorean(pack[tf_key], idx=-1-j)
+                    if es_patron:
+                        patron_alc = direccion_p == "ALCISTA"
+                        # Debe coincidir con la dirección de la divergencia
+                        if patron_alc == div_alc:
+                            patron_encontrado = {
+                                'patron': patron,
+                                'direccion': direccion_p,
+                                'k': k_p,
+                                'stop': stop_p,
+                                'j': j
+                            }
+                            break
+
+                if patron_encontrado is None:
+                    continue
+
+                macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
+                cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
+                icono     = "🚀" if div_alc else "💣"
+                res_confluencia.append({
+                    "Ticker":      ticker,
+                    "TF":          tf_name,
+                    "Dirección":   f"{'🟢 ALCISTA' if div_alc else '🔴 BAJISTA'}",
+                    "Señal":       f"{icono} DIV + {patron_encontrado['patron']}",
+                    "Div Fuerza":  tipo_div.split("(")[1].replace(")","") if "(" in tipo_div else "-",
+                    "Div Dur.":    duracion,
+                    "MACD":        f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
+                    "Vela Stoch":  round(patron_encontrado['k'], 1),
+                    "Antigüedad":  f"Hace {patron_encontrado['j']} {'Mes' if tf_key=='M' else 'Sem'}",
+                    "Precio":      precio,
+                    "Stop Ref":    round(float(patron_encontrado['stop']), 2)
+                })
 
         # ── CRUCE EMA 50/200 ──
         if filtro_emas:
