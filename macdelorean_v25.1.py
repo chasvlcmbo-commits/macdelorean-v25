@@ -1530,55 +1530,73 @@ def buscador_velas_macdelorean(pack):
 
 
 
-def check_sabroson(pack, periodo_ema=200, margen_pct=2.0):
+def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3):
     """
-    Busca toque de EMA en diario con MACD mensual confirmando dirección.
-    Alcista: MACD mensual > 0 y > signal + precio toca EMA con tolerancia margen_pct
-    Bajista: MACD mensual < 0 y < signal + precio toca EMA con tolerancia margen_pct
-    Devuelve (encontrado, direccion, precio_ema, distancia_pct)
+    Busca patrón de cambio tocando una EMA con MACD mensual alineado.
+    - Sabrosón 200: timeframe='W', EMA 200 semanal
+    - Sabrosón 50:  timeframe='D', EMA 50 diaria
+    Revisa las últimas N velas (incluida la actual) para detectar toque + patrón.
+    Devuelve (encontrado, direccion, patron, antiguedad, precio_ema, distancia_pct, stoch_k, stop)
     """
-    m = pack['M']; d = pack['D']
-    if 'MACD' not in m.columns or len(m) < 2 or len(d) < periodo_ema + 5:
-        return False, "", 0, 0
+    m = pack['M']
+    df = pack[timeframe]
+    if 'MACD' not in m.columns or len(m) < 2 or len(df) < periodo_ema + 5:
+        return False, "", "", "", 0, 0, 0, 0
 
     curr_m = m.iloc[-1]
     m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal'])
     m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal'])
 
     if not (m_bull or m_bear):
-        return False, "", 0, 0
+        return False, "", "", "", 0, 0, 0, 0
 
-    # Calcular EMA exponencial diaria
-    ema = d['Close'].ewm(span=periodo_ema, adjust=False).mean()
-    ema_actual = float(ema.iloc[-1])
+    # EMA sobre el timeframe elegido
+    ema_serie = df['Close'].ewm(span=periodo_ema, adjust=False).mean()
 
-    curr_d = d.iloc[-1]
-    low  = float(curr_d['Low'])
-    high = float(curr_d['High'])
-    close = float(curr_d['Close'])
+    unidad = {"D": "Día", "W": "Sem", "M": "Mes"}.get(timeframe, "vela")
 
-    if ema_actual <= 0:
-        return False, "", 0, 0
+    for j in range(velas_atras):
+        idx = -1 - j
+        if abs(idx) >= len(df):
+            break
 
-    margen = ema_actual * (margen_pct / 100.0)
-    zona_baja = ema_actual - margen
-    zona_alta = ema_actual + margen
+        vela = df.iloc[idx]
+        low  = float(vela['Low'])
+        high = float(vela['High'])
+        close = float(vela['Close'])
+        ema_vela = float(ema_serie.iloc[idx])
 
-    # Toque real: la EMA está dentro del rango de la vela (mecha la cruza)
-    toque_directo = (low <= ema_actual <= high)
-    # O el cierre está cerca dentro del margen
-    cerca = (zona_baja <= close <= zona_alta)
-    toca = toque_directo or cerca
+        if ema_vela <= 0:
+            continue
 
-    if not toca:
-        return False, "", 0, 0
+        # Verificar toque en esta vela
+        margen = ema_vela * (margen_pct / 100.0)
+        zona_baja = ema_vela - margen
+        zona_alta = ema_vela + margen
+        toque_directo = (low <= ema_vela <= high)
+        cerca = (zona_baja <= close <= zona_alta)
+        toca = toque_directo or cerca
 
-    distancia_pct = round(abs(close - ema_actual) / ema_actual * 100, 2)
+        if not toca:
+            continue
 
-    if m_bull:
-        return True, "ALCISTA", round(ema_actual, 2), distancia_pct
-    else:
-        return True, "BAJISTA", round(ema_actual, 2), distancia_pct
+        # Detectar patrón de vela en esta misma posición
+        es_patron, patron, direccion, k, stop = check_patron_vela_macdelorean(df, idx=idx)
+        if not es_patron:
+            continue
+
+        # Comprobar alineación con MACD mensual
+        if direccion == "ALCISTA" and not m_bull:
+            continue
+        if direccion == "BAJISTA" and not m_bear:
+            continue
+
+        distancia_pct = round(abs(close - ema_vela) / ema_vela * 100, 2)
+        antiguedad = "Vela actual" if j == 0 else f"Hace {j} {unidad}"
+
+        return True, direccion, patron, antiguedad, round(ema_vela, 2), distancia_pct, round(k, 1), round(float(stop), 2)
+
+    return False, "", "", "", 0, 0, 0, 0
 
 
 # ==============================================================================
@@ -1933,31 +1951,41 @@ if lanzar:
                         "Precio":    precio
                     })
 
-        # ── OPERACIONES SABROSÓN 200 ──
+        # ── OPERACIONES SABROSÓN 200 (Semanal + EMA 200) ──
         if filtro_sabroson200:
-            es_s, dir_s, precio_ema, dist = check_sabroson(pack, periodo_ema=200, margen_pct=2.0)
+            es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
+                pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3
+            )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
                     res_sabroson200.append({
                         "Ticker":        ticker,
                         "Dirección":     dir_s,
-                        "Señal":         "🌮 TOQUE EMA 200",
-                        "EMA 200":       precio_ema,
+                        "Patrón":        patron,
+                        "Antigüedad":    antig,
+                        "EMA 200 (W)":   precio_ema,
                         "Distancia %":   dist,
+                        "Stoch K":       k_s,
+                        "Stop Ref":      stop_s,
                         "Precio":        precio
                     })
 
-        # ── OPERACIONES SABROSÓN 50 ──
+        # ── OPERACIONES SABROSÓN 50 (Diario + EMA 50) ──
         if filtro_sabroson50:
-            es_s, dir_s, precio_ema, dist = check_sabroson(pack, periodo_ema=50, margen_pct=2.0)
+            es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
+                pack, periodo_ema=50, timeframe="D", margen_pct=2.0, velas_atras=3
+            )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
                     res_sabroson50.append({
                         "Ticker":        ticker,
                         "Dirección":     dir_s,
-                        "Señal":         "🌯 TOQUE EMA 50",
-                        "EMA 50":        precio_ema,
+                        "Patrón":        patron,
+                        "Antigüedad":    antig,
+                        "EMA 50 (D)":    precio_ema,
                         "Distancia %":   dist,
+                        "Stoch K":       k_s,
+                        "Stop Ref":      stop_s,
                         "Precio":        precio
                     })
 
