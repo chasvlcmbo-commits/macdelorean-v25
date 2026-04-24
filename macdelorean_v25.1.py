@@ -1544,8 +1544,9 @@ def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_a
         return False, "", "", "", 0, 0, 0, 0
 
     curr_m = m.iloc[-1]
-    m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal'])
-    m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal'])
+    # Solo exige dirección del MACD — no importa si está sobre o bajo línea 0
+    m_bull = curr_m['MACD'] > curr_m['Signal']
+    m_bear = curr_m['MACD'] < curr_m['Signal']
 
     if not (m_bull or m_bear):
         return False, "", "", "", 0, 0, 0, 0
@@ -1954,7 +1955,7 @@ if lanzar:
         # ── OPERACIONES SABROSÓN 200 (Semanal + EMA 200) ──
         if filtro_sabroson200:
             es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
-                pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3
+                pack, periodo_ema=40, timeframe="W", margen_pct=2.0, velas_atras=3
             )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
@@ -1963,7 +1964,7 @@ if lanzar:
                         "Dirección":     dir_s,
                         "Patrón":        patron,
                         "Antigüedad":    antig,
-                        "EMA 200 (W)":   precio_ema,
+                        "EMA 200D/40W":  precio_ema,
                         "Distancia %":   dist,
                         "Stoch K":       k_s,
                         "Stop Ref":      stop_s,
