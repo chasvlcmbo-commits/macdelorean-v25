@@ -1354,27 +1354,18 @@ def check_patron_vela_macdelorean(df, idx=-1):
     stoch_baj  = k > 80
 
     # Divergencia de estocástico (segunda oportunidad si no está en extremo)
-    div_stoch_alc = check_div_stoch(df, idx, 'alcista')
-    div_stoch_baj = check_div_stoch(df, idx, 'bajista')
-
-    # Suficiente confirmación alcista/bajista (estocástico extremo O divergencia)
-    confirm_alc = stoch_alc or div_stoch_alc
-    confirm_baj = stoch_baj or div_stoch_baj
-
-    # Etiqueta extra si viene de divergencia sin extremo
-    def etiqueta_div(patron, stoch_ok, div_ok):
-        if stoch_ok:
-            return patron
-        return f"🔀 {patron} + Div Stoch"
+    # Solo estocástico extremo — sin divergencia de estocástico
+    confirm_alc = stoch_alc
+    confirm_baj = stoch_baj
 
     # ─── VELA DE ENGAÑO (reutiliza check_vela_engano) ───
     es_eng, tipo_eng, k_eng, stop_eng = check_vela_engano(df, idx=idx)
     if es_eng:
         if "ALCISTA" in tipo_eng and confirm_alc:
-            nombre = etiqueta_div("🎭 Vela Engaño", stoch_alc, div_stoch_alc)
+            nombre = "🎭 Vela Engaño"
             return True, nombre, "ALCISTA", k, float(min(l, l1))
         if "BAJISTA" in tipo_eng and confirm_baj:
-            nombre = etiqueta_div("🎭 Vela Engaño", stoch_baj, div_stoch_baj)
+            nombre = "🎭 Vela Engaño"
             return True, nombre, "BAJISTA", k, float(max(h, h1))
 
     # ─── MARTILLO (alcista) ───
@@ -1383,7 +1374,7 @@ def check_patron_vela_macdelorean(df, idx=-1):
         mecha_sup <= cuerpo * 0.5 and
         cuerpo >= rango * 0.1 and
         mecha_inf >= rango * 0.55):
-        nombre = etiqueta_div("🔨 Martillo", stoch_alc, div_stoch_alc)
+        nombre = "🔨 Martillo"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── HOMBRE COLGADO (bajista) ───
@@ -1392,7 +1383,7 @@ def check_patron_vela_macdelorean(df, idx=-1):
         mecha_sup <= cuerpo * 0.5 and
         cuerpo >= rango * 0.1 and
         mecha_inf >= rango * 0.55):
-        nombre = etiqueta_div("💀 Hombre Colgado", stoch_baj, div_stoch_baj)
+        nombre = "💀 Hombre Colgado"
         return True, nombre, "BAJISTA", k, float(h)
 
     # ─── MARTILLO INVERTIDO (alcista) ───
@@ -1400,7 +1391,7 @@ def check_patron_vela_macdelorean(df, idx=-1):
         mecha_sup >= cuerpo * 2.0 and
         mecha_inf <= cuerpo * 0.5 and
         cuerpo >= rango * 0.1):
-        nombre = etiqueta_div("🔨 Martillo Invertido", stoch_alc, div_stoch_alc)
+        nombre = "🔨 Martillo Invertido"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── ESTRELLA FUGAZ (bajista) ───
@@ -1408,85 +1399,83 @@ def check_patron_vela_macdelorean(df, idx=-1):
         mecha_sup >= cuerpo * 2.0 and
         mecha_inf <= cuerpo * 0.3 and
         cuerpo >= rango * 0.1):
-        nombre = etiqueta_div("💫 Estrella Fugaz", stoch_baj, div_stoch_baj)
+        nombre = "💫 Estrella Fugaz"
         return True, nombre, "BAJISTA", k, float(h)
 
     # ─── ENVOLVENTE ALCISTA ───
     if (confirm_alc and es_alc and not es_alc1 and
         o <= c1 and c >= o1 and
         cuerpo > cuerpo1 * 0.8):
-        nombre = etiqueta_div("🔁 Envolvente Alcista", stoch_alc, div_stoch_alc)
+        nombre = "🔁 Envolvente Alcista"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── ENVOLVENTE BAJISTA ───
     if (confirm_baj and not es_alc and es_alc1 and
         o >= c1 and c <= o1 and
         cuerpo > cuerpo1 * 0.8):
-        nombre = etiqueta_div("🔁 Envolvente Bajista", stoch_baj, div_stoch_baj)
+        nombre = "🔁 Envolvente Bajista"
         return True, nombre, "BAJISTA", k, float(h)
 
     # ─── HARAMI ALCISTA ───
     if (confirm_alc and es_alc and not es_alc1 and
         o > c1 and c < o1 and
         cuerpo < cuerpo1 * 0.6):
-        nombre = etiqueta_div("🤰 Harami Alcista", stoch_alc, div_stoch_alc)
+        nombre = "🤰 Harami Alcista"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── HARAMI BAJISTA ───
     if (confirm_baj and not es_alc and es_alc1 and
         o < c1 and c > o1 and
         cuerpo < cuerpo1 * 0.6):
-        nombre = etiqueta_div("🤰 Harami Bajista", stoch_baj, div_stoch_baj)
+        nombre = "🤰 Harami Bajista"
         return True, nombre, "BAJISTA", k, float(h)
 
     # ─── DOJI DE GIRO ALCISTA ───
     if (confirm_alc and cuerpo <= rango * 0.08 and rango > 0):
-        nombre = etiqueta_div("✝️ Doji Alcista", stoch_alc, div_stoch_alc)
+        nombre = "✝️ Doji Alcista"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── DOJI DE GIRO BAJISTA ───
     if (confirm_baj and cuerpo <= rango * 0.08 and rango > 0):
-        nombre = etiqueta_div("✝️ Doji Bajista", stoch_baj, div_stoch_baj)
+        nombre = "✝️ Doji Bajista"
         return True, nombre, "BAJISTA", k, float(h)
 
     # ─── MORNING STAR — estocástico medido en vela del medio (k1) ───
     es_bajista2 = o2 > c2
     stoch_mid_alc = k1 < 20
-    div_mid_alc   = check_div_stoch(df, idx - 1, 'alcista')
-    if ((stoch_mid_alc or div_mid_alc) and es_alc and
+    if (stoch_mid_alc and es_alc and
         es_bajista2 and
         abs(c2 - o2) >= (h2 - l2 + 1e-10) * 0.5 and
         abs(c1 - o1) <= (h1 - l1 + 1e-10) * 0.3 and
         cuerpo >= rango * 0.45 and
         c > (o2 + c2) / 2):
-        nombre = etiqueta_div("⭐ Morning Star", stoch_mid_alc, div_mid_alc)
+        nombre = "⭐ Morning Star"
         return True, nombre, "ALCISTA", k1, float(min(l, l1, l2))
 
     # ─── EVENING STAR — estocástico medido en vela del medio (k1) ───
     es_alcista2 = c2 > o2
     stoch_mid_baj = k1 > 80
-    div_mid_baj   = check_div_stoch(df, idx - 1, 'bajista')
-    if ((stoch_mid_baj or div_mid_baj) and not es_alc and
+    if (stoch_mid_baj and not es_alc and
         es_alcista2 and
         abs(c2 - o2) >= (h2 - l2 + 1e-10) * 0.5 and
         abs(c1 - o1) <= (h1 - l1 + 1e-10) * 0.3 and
         cuerpo >= rango * 0.45 and
         c < (o2 + c2) / 2):
-        nombre = etiqueta_div("⭐ Evening Star", stoch_mid_baj, div_mid_baj)
+        nombre = "⭐ Evening Star"
         return True, nombre, "BAJISTA", k1, float(max(h, h1, h2))
 
     # ─── PINBAR ALCISTA ───
     if (confirm_alc and
         mecha_inf >= rango * 0.65 and
         cuerpo <= rango * 0.25):
-        nombre = etiqueta_div("📍 Pinbar Alcista", stoch_alc, div_stoch_alc)
+        nombre = "📍 Pinbar Alcista"
         return True, nombre, "ALCISTA", k, float(l)
 
     # ─── PINBAR BAJISTA ───
     if (confirm_baj and
         mecha_sup >= rango * 0.65 and
         cuerpo <= rango * 0.25):
-        nombre = etiqueta_div("📍 Pinbar Bajista", stoch_baj, div_stoch_baj)
+        nombre = "📍 Pinbar Bajista"
         return True, nombre, "BAJISTA", k, float(h)
 
     return False, "", "", k, 0
@@ -2254,9 +2243,11 @@ if lanzar:
                 alc = df_out[df_out['Dirección'] == 'ALCISTA']
                 baj = df_out[df_out['Dirección'] == 'BAJISTA']
                 if not alc.empty:
-                    st.markdown("#### 🟢 ALCISTAS"); st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
+                    st.markdown("#### 🟢 VELAS DE CAMBIO — ALCISTAS")
+                    st.dataframe(alc.drop(columns=['Dirección']), use_container_width=True)
                 if not baj.empty:
-                    st.markdown("#### 🔴 BAJISTAS"); st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
+                    st.markdown("#### 🔴 VELAS DE CAMBIO — BAJISTAS")
+                    st.dataframe(baj.drop(columns=['Dirección']), use_container_width=True)
                 st.download_button("⬇️ Exportar CSV", df_out.to_csv(index=False).encode(), "velas.csv", "text/csv")
             else:
                 st.info("Sin velas de engaño detectadas.")
