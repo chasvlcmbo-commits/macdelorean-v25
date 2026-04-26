@@ -1478,6 +1478,43 @@ def check_patron_vela_macdelorean(df, idx=-1):
         nombre = "📍 Pinbar Bajista"
         return True, nombre, "BAJISTA", k, float(h)
 
+    # ─── TRES SOLDADOS BLANCOS — patrón alcista de 3 velas consecutivas ───
+    # Condiciones:
+    # 1. Las 3 velas son alcistas (cierre > apertura)
+    # 2. Cada vela cierra más alta que la anterior
+    # 3. Cada vela abre dentro del cuerpo de la vela anterior
+    # 4. Cuerpos significativos (no son dojis)
+    # 5. Estocástico < 20 en la PRIMERA vela del patrón (la más antigua = vela 2 atrás)
+    if len(df) >= abs(idx) + 3:
+        k2 = float(prev2['K']) if not pd.isna(prev2['K']) else 50
+        es_alc2 = c2 > o2
+        # Las tres velas son alcistas
+        if (es_alc2 and es_alc1 and es_alc and
+            k2 < 20 and  # estocástico extremo en la PRIMERA vela
+            c2 < c1 < c and  # cierres ascendentes
+            o1 > o2 and o1 < c2 and  # vela 1 abre dentro del cuerpo de vela 2
+            o > o1 and o < c1 and  # vela actual abre dentro del cuerpo de vela 1
+            abs(c2 - o2) >= (h2 - l2 + 1e-10) * 0.3 and
+            abs(c1 - o1) >= (h1 - l1 + 1e-10) * 0.3 and
+            cuerpo >= rango * 0.3):
+            return True, "🪖 Tres Soldados Blancos", "ALCISTA", k2, float(min(l, l1, l2))
+
+    # ─── TRES CUERVOS NEGROS — patrón bajista de 3 velas consecutivas ───
+    if len(df) >= abs(idx) + 3:
+        k2 = float(prev2['K']) if not pd.isna(prev2['K']) else 50
+        es_baj2 = c2 < o2
+        es_baj1 = c1 < o1
+        es_baj  = c < o
+        if (es_baj2 and es_baj1 and es_baj and
+            k2 > 80 and  # estocástico extremo en la PRIMERA vela
+            c2 > c1 > c and  # cierres descendentes
+            o1 < o2 and o1 > c2 and  # vela 1 abre dentro del cuerpo de vela 2
+            o < o1 and o > c1 and  # vela actual abre dentro del cuerpo de vela 1
+            abs(o2 - c2) >= (h2 - l2 + 1e-10) * 0.3 and
+            abs(o1 - c1) >= (h1 - l1 + 1e-10) * 0.3 and
+            cuerpo >= rango * 0.3):
+            return True, "🦅 Tres Cuervos Negros", "BAJISTA", k2, float(max(h, h1, h2))
+
     return False, "", "", k, 0
 
 
@@ -1519,26 +1556,35 @@ def buscador_velas_macdelorean(pack):
 
 
 
-def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3):
+def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3, exigir_macd_semanal=False):
     """
     Busca patrón de cambio tocando una EMA con MACD mensual alineado.
-    - Sabrosón 200: timeframe='W', EMA 200 semanal
-    - Sabrosón 50:  timeframe='D', EMA 50 diaria
+    - Sabrosón 200: timeframe='W', EMA 40 semanal (= EMA 200 diaria), MACD mensual
+    - Sabrosón 50:  timeframe='D', EMA 50 diaria, MACD mensual + semanal alineados
     Revisa las últimas N velas (incluida la actual) para detectar toque + patrón.
     Devuelve (encontrado, direccion, patron, antiguedad, precio_ema, distancia_pct, stoch_k, stop)
     """
     m = pack['M']
+    w = pack['W']
     df = pack[timeframe]
     if 'MACD' not in m.columns or len(m) < 2 or len(df) < periodo_ema + 5:
         return False, "", "", "", 0, 0, 0, 0
 
     curr_m = m.iloc[-1]
-    # Solo exige dirección del MACD — no importa si está sobre o bajo línea 0
+    # Solo exige dirección del MACD mensual
     m_bull = curr_m['MACD'] > curr_m['Signal']
     m_bear = curr_m['MACD'] < curr_m['Signal']
 
     if not (m_bull or m_bear):
         return False, "", "", "", 0, 0, 0, 0
+
+    # Para Sabrosón 50: exigir también MACD semanal alineado
+    w_bull = True
+    w_bear = True
+    if exigir_macd_semanal and 'MACD' in w.columns and len(w) >= 2:
+        curr_w = w.iloc[-1]
+        w_bull = curr_w['MACD'] > curr_w['Signal']
+        w_bear = curr_w['MACD'] < curr_w['Signal']
 
     # EMA sobre el timeframe elegido
     ema_serie = df['Close'].ewm(span=periodo_ema, adjust=False).mean()
@@ -1575,10 +1621,10 @@ def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_a
         if not es_patron:
             continue
 
-        # Comprobar alineación con MACD mensual
-        if direccion == "ALCISTA" and not m_bull:
+        # Comprobar alineación con MACD mensual (y semanal si aplica)
+        if direccion == "ALCISTA" and not (m_bull and w_bull):
             continue
-        if direccion == "BAJISTA" and not m_bear:
+        if direccion == "BAJISTA" and not (m_bear and w_bear):
             continue
 
         distancia_pct = round(abs(close - ema_vela) / ema_vela * 100, 2)
@@ -1706,8 +1752,19 @@ with st.sidebar:
         vc_d = st.checkbox("Diario",  value=False, key="vc_d")
         vc_w = st.checkbox("Semanal", value=True,  key="vc_w")
         vc_m = st.checkbox("Mensual", value=True,  key="vc_m")
+        st.markdown("**MACD — Velas de Cambio:**")
+        opc_e = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+        opc_c = ["⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"]
+        vc_macd_m_est = st.selectbox("Mensual — Estado",   opc_e, index=0, key="vc_macd_m_est")
+        vc_macd_m_cer = st.selectbox("Mensual — Línea 0",  opc_c, index=0, key="vc_macd_m_cer")
+        vc_macd_w_est = st.selectbox("Semanal — Estado",   opc_e, index=0, key="vc_macd_w_est")
+        vc_macd_w_cer = st.selectbox("Semanal — Línea 0",  opc_c, index=0, key="vc_macd_w_cer")
+        vc_macd_d_est = st.selectbox("Diario — Estado",    opc_e, index=0, key="vc_macd_d_est")
+        vc_macd_d_cer = st.selectbox("Diario — Línea 0",   opc_c, index=0, key="vc_macd_d_cer")
     else:
         vc_d = vc_w = vc_m = False
+        vc_macd_m_est = vc_macd_w_est = vc_macd_d_est = "⚪ Cualquiera"
+        vc_macd_m_cer = vc_macd_w_cer = vc_macd_d_cer = "⚪ Cualquiera"
     filtro_emas        = st.checkbox("📈 Cruce EMA 50/200",              value=False, key="f6")
     filtro_puntob      = st.checkbox("🔵 Módulo de Arranque (Punto B)",  value=False, key="f7")
     filtro_paco        = st.checkbox("🌟 Señal de Paco Pérez",            value=False, key="f8")
@@ -1847,15 +1904,23 @@ if lanzar:
 
         if filtro_velas:
             tfs_velas = []
-            if vc_m: tfs_velas.append(('M', 'MENSUAL'))
-            if vc_w: tfs_velas.append(('W', 'SEMANAL'))
-            if vc_d: tfs_velas.append(('D', 'DIARIO'))
-            for tf_key, tf_name in tfs_velas:
+            if vc_m: tfs_velas.append(('M', 'MENSUAL', vc_macd_m_est, vc_macd_m_cer))
+            if vc_w: tfs_velas.append(('W', 'SEMANAL', vc_macd_w_est, vc_macd_w_cer))
+            if vc_d: tfs_velas.append(('D', 'DIARIO',  vc_macd_d_est, vc_macd_d_cer))
+            for tf_key, tf_name, est_sel, cer_sel in tfs_velas:
                 for j in range(4):
                     es_patron, patron, direccion_p, k_p, stop_p = check_patron_vela_macdelorean(pack[tf_key], idx=-1-j)
                     if es_patron:
                         es_alc = direccion_p == "ALCISTA"
                         if (es_alc and dir_alcista) or (not es_alc and dir_bajista):
+                            # Filtro MACD
+                            est_tf, pos_tf = check_macd_estado(pack[tf_key])
+                            if est_sel == "🟢 Alcista"        and est_tf != 'alcista': break
+                            if est_sel == "🔴 Bajista"        and est_tf != 'bajista': break
+                            if cer_sel == "⬆️ Por encima de 0" and pos_tf != 'encima':  break
+                            if cer_sel == "⬇️ Por debajo de 0" and pos_tf != 'debajo':  break
+                            macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
+                            cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
                             unidad = 'Mes' if tf_key=='M' else ('Sem' if tf_key=='W' else 'Día')
                             res_velas.append({
                                 "Ticker":     ticker,
@@ -1864,6 +1929,7 @@ if lanzar:
                                 "Dirección":  direccion_p,
                                 "Antigüedad": f"Hace {j} {unidad}",
                                 "Stoch K":    round(k_p, 1),
+                                "MACD":       f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
                                 "Precio":     precio,
                                 "Stop Ref":   round(float(stop_p), 2)
                             })
@@ -1963,7 +2029,8 @@ if lanzar:
         # ── OPERACIONES SABROSÓN 50 (Diario + EMA 50) ──
         if filtro_sabroson50:
             es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
-                pack, periodo_ema=50, timeframe="D", margen_pct=2.0, velas_atras=3
+                pack, periodo_ema=50, timeframe="D", margen_pct=2.0, velas_atras=3,
+                exigir_macd_semanal=True
             )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
