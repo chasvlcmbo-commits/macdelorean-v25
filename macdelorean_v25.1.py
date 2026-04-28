@@ -1556,35 +1556,42 @@ def buscador_velas_macdelorean(pack):
 
 
 
-def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3, exigir_macd_semanal=False):
+def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_atras=3,
+                   filtros_macd=None):
     """
-    Busca patrón de cambio tocando una EMA con MACD mensual alineado.
-    - Sabrosón 200: timeframe='W', EMA 40 semanal (= EMA 200 diaria), MACD mensual
-    - Sabrosón 50:  timeframe='D', EMA 50 diaria, MACD mensual + semanal alineados
-    Revisa las últimas N velas (incluida la actual) para detectar toque + patrón.
+    Busca patrón de cambio tocando una EMA con MACD configurables por timeframe.
+    filtros_macd es un dict con claves 'M', 'W', 'D' y cada valor es una tupla:
+        (estado, posicion_cero) donde:
+            estado    ∈ {"⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"}
+            posicion  ∈ {"⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"}
+    Si filtros_macd es None, no aplica filtros MACD (todos cualquiera).
     Devuelve (encontrado, direccion, patron, antiguedad, precio_ema, distancia_pct, stoch_k, stop)
     """
-    m = pack['M']
-    w = pack['W']
     df = pack[timeframe]
-    if 'MACD' not in m.columns or len(m) < 2 or len(df) < periodo_ema + 5:
+    if len(df) < periodo_ema + 5:
         return False, "", "", "", 0, 0, 0, 0
 
-    curr_m = m.iloc[-1]
-    # Solo exige dirección del MACD mensual
-    m_bull = curr_m['MACD'] > curr_m['Signal']
-    m_bear = curr_m['MACD'] < curr_m['Signal']
+    if filtros_macd is None:
+        filtros_macd = {
+            'M': ("⚪ Cualquiera", "⚪ Cualquiera"),
+            'W': ("⚪ Cualquiera", "⚪ Cualquiera"),
+            'D': ("⚪ Cualquiera", "⚪ Cualquiera"),
+        }
 
-    if not (m_bull or m_bear):
-        return False, "", "", "", 0, 0, 0, 0
-
-    # Para Sabrosón 50: exigir también MACD semanal alineado
-    w_bull = True
-    w_bear = True
-    if exigir_macd_semanal and 'MACD' in w.columns and len(w) >= 2:
-        curr_w = w.iloc[-1]
-        w_bull = curr_w['MACD'] > curr_w['Signal']
-        w_bear = curr_w['MACD'] < curr_w['Signal']
+    # Verifica si la dirección candidata cumple los filtros MACD en los 3 TFs
+    def macd_cumple(direccion):
+        for tf_check in ('M', 'W', 'D'):
+            est_sel, cer_sel = filtros_macd.get(tf_check, ("⚪ Cualquiera", "⚪ Cualquiera"))
+            if est_sel == "⚪ Cualquiera" and cer_sel == "⚪ Cualquiera":
+                continue
+            if tf_check not in pack or 'MACD' not in pack[tf_check].columns or len(pack[tf_check]) < 1:
+                return False
+            est_tf, pos_tf = check_macd_estado(pack[tf_check])
+            if est_sel == "🟢 Alcista" and est_tf != 'alcista': return False
+            if est_sel == "🔴 Bajista" and est_tf != 'bajista': return False
+            if cer_sel == "⬆️ Por encima de 0" and pos_tf != 'encima': return False
+            if cer_sel == "⬇️ Por debajo de 0" and pos_tf != 'debajo': return False
+        return True
 
     # EMA sobre el timeframe elegido
     ema_serie = df['Close'].ewm(span=periodo_ema, adjust=False).mean()
@@ -1621,10 +1628,8 @@ def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_a
         if not es_patron:
             continue
 
-        # Comprobar alineación con MACD mensual (y semanal si aplica)
-        if direccion == "ALCISTA" and not (m_bull and w_bull):
-            continue
-        if direccion == "BAJISTA" and not (m_bear and w_bear):
+        # Comprobar filtros MACD configurables en M, W, D
+        if not macd_cumple(direccion):
             continue
 
         distancia_pct = round(abs(close - ema_vela) / ema_vela * 100, 2)
@@ -1772,6 +1777,33 @@ with st.sidebar:
     filtro_sabroson200 = st.checkbox("🌮 Operaciones Sabrosón 200",        value=False, key="f10")
     filtro_sabroson50  = st.checkbox("🌯 Operaciones Sabrosón 50",         value=False, key="f11")
     filtro_conf_master = st.checkbox("💎 Confluencias Master",              value=False, key="f12")
+
+    opc_e = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
+    opc_c = ["⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"]
+
+    if filtro_sabroson200:
+        st.markdown("**MACD — Sabrosón 200:**")
+        s200_m_est = st.selectbox("Mensual — Estado",  opc_e, index=0, key="s200_m_est")
+        s200_m_cer = st.selectbox("Mensual — Línea 0", opc_c, index=0, key="s200_m_cer")
+        s200_w_est = st.selectbox("Semanal — Estado",  opc_e, index=0, key="s200_w_est")
+        s200_w_cer = st.selectbox("Semanal — Línea 0", opc_c, index=0, key="s200_w_cer")
+        s200_d_est = st.selectbox("Diario — Estado",   opc_e, index=0, key="s200_d_est")
+        s200_d_cer = st.selectbox("Diario — Línea 0",  opc_c, index=0, key="s200_d_cer")
+    else:
+        s200_m_est = s200_w_est = s200_d_est = "⚪ Cualquiera"
+        s200_m_cer = s200_w_cer = s200_d_cer = "⚪ Cualquiera"
+
+    if filtro_sabroson50:
+        st.markdown("**MACD — Sabrosón 50:**")
+        s50_m_est = st.selectbox("Mensual — Estado",  opc_e, index=0, key="s50_m_est")
+        s50_m_cer = st.selectbox("Mensual — Línea 0", opc_c, index=0, key="s50_m_cer")
+        s50_w_est = st.selectbox("Semanal — Estado",  opc_e, index=0, key="s50_w_est")
+        s50_w_cer = st.selectbox("Semanal — Línea 0", opc_c, index=0, key="s50_w_cer")
+        s50_d_est = st.selectbox("Diario — Estado",   opc_e, index=0, key="s50_d_est")
+        s50_d_cer = st.selectbox("Diario — Línea 0",  opc_c, index=0, key="s50_d_cer")
+    else:
+        s50_m_est = s50_w_est = s50_d_est = "⚪ Cualquiera"
+        s50_m_cer = s50_w_cer = s50_d_cer = "⚪ Cualquiera"
 
     if filtro_puntob:
         st.markdown("**Timeframes Punto B:**")
@@ -2009,8 +2041,14 @@ if lanzar:
 
         # ── OPERACIONES SABROSÓN 200 (Semanal + EMA 200) ──
         if filtro_sabroson200:
+            filtros_s200 = {
+                'M': (s200_m_est, s200_m_cer),
+                'W': (s200_w_est, s200_w_cer),
+                'D': (s200_d_est, s200_d_cer),
+            }
             es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
-                pack, periodo_ema=40, timeframe="W", margen_pct=2.0, velas_atras=3
+                pack, periodo_ema=40, timeframe="W", margen_pct=2.0, velas_atras=3,
+                filtros_macd=filtros_s200
             )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
@@ -2028,9 +2066,14 @@ if lanzar:
 
         # ── OPERACIONES SABROSÓN 50 (Diario + EMA 50) ──
         if filtro_sabroson50:
+            filtros_s50 = {
+                'M': (s50_m_est, s50_m_cer),
+                'W': (s50_w_est, s50_w_cer),
+                'D': (s50_d_est, s50_d_cer),
+            }
             es_s, dir_s, patron, antig, precio_ema, dist, k_s, stop_s = check_sabroson(
                 pack, periodo_ema=50, timeframe="D", margen_pct=2.0, velas_atras=3,
-                exigir_macd_semanal=True
+                filtros_macd=filtros_s50
             )
             if es_s:
                 if (dir_s == "ALCISTA" and dir_alcista) or (dir_s == "BAJISTA" and dir_bajista):
