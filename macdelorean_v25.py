@@ -30,7 +30,7 @@ st.markdown("""
         --text-dim:    #7A7060;
         --text-mid:    #A89060;
         --text-light:  #D4B870;
-    }
+    } 
 
     /* ── FONDO GENERAL ── */
     .stApp {
