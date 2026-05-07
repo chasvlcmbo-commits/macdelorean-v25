@@ -1599,36 +1599,48 @@ def check_patron_vela_macdelorean(df, idx=-1):
 
 def buscador_velas_macdelorean(pack):
     """
-    Mismo esquema que Premium (M+W+D) pero con todos los patrones de vela.
-    Alcista: M alcista + W corrigiendo + patrón vela alcista semanal + D girando
-    Bajista: M bajista + W rebotando + patrón vela bajista semanal + D girando
+    Confluencia M+W+D estilo Premium con patrones ampliados:
+      - MACD mensual alineado con la dirección final
+      - Semanal en CORRECCIÓN (MACD contra la dirección) + patrón de cambio + estoc. extremo
+      - MACD diario YA girando en la dirección final
+    Alcista (BUY): M alcista + W bajista + patrón alcista semanal + D alcista
+    Bajista (SELL): M bajista + W alcista + patrón bajista semanal + D bajista
     """
     m = pack['M']; w = pack['W']; d = pack['D']
-    if 'MACD' not in m.columns or len(m) < 2:
+    if ('MACD' not in m.columns or len(m) < 2 or
+        'MACD' not in w.columns or len(w) < 1 or
+        'MACD' not in d.columns or len(d) < 1):
         return False, "", "", 0, 0
 
-    curr_m = m.iloc[-1]; prev_m = m.iloc[-2]
-    w_curr = w.iloc[-1]; d_curr = d.iloc[-1]
+    curr_m = m.iloc[-1]
+    curr_w = w.iloc[-1]
+    curr_d = d.iloc[-1]
 
-    m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal']) and (curr_m['MACD'] > prev_m['MACD'])
-    m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal']) and (curr_m['MACD'] < prev_m['MACD'])
+    m_bull = (curr_m['MACD'] > 0) and (curr_m['MACD'] > curr_m['Signal'])
+    m_bear = (curr_m['MACD'] < 0) and (curr_m['MACD'] < curr_m['Signal'])
 
+    # Semanal correctivo: contra la tendencia mensual
+    w_bull = curr_w['MACD'] > curr_w['Signal']
+    w_bear = curr_w['MACD'] < curr_w['Signal']
+
+    # Diario ya girando hacia la dirección final
+    d_bull = curr_d['MACD'] > curr_d['Signal']
+    d_bear = curr_d['MACD'] < curr_d['Signal']
+
+    if not (m_bull or m_bear):
+        return False, "", "", 0, 0
+
+    # Buscar patrón de cambio en las últimas 5 semanas
     for i in range(5):
         idx = -1 - i
         es_patron, patron, direccion, k, stop = check_patron_vela_macdelorean(w, idx=idx)
         if not es_patron:
             continue
-        # ALCISTA: mensual alcista + semanal corrigiendo + diario girando
-        if (m_bull and
-            direccion == "ALCISTA" and
-            w_curr['MACD'] < w_curr['Signal'] and
-            d_curr['MACD'] > d_curr['Signal']):
+        # ALCISTA: M alcista + W correctivo bajista + patrón alcista + D alcista
+        if direccion == "ALCISTA" and m_bull and w_bear and d_bull:
             return True, f"🚗 MACDELOREAN BUY — {patron} (Hace {i} sem)", direccion, k, stop
-        # BAJISTA: mensual bajista + semanal rebotando + diario girando
-        if (m_bear and
-            direccion == "BAJISTA" and
-            w_curr['MACD'] > w_curr['Signal'] and
-            d_curr['MACD'] < d_curr['Signal']):
+        # BAJISTA: M bajista + W correctivo alcista + patrón bajista + D bajista
+        if direccion == "BAJISTA" and m_bear and w_bull and d_bear:
             return True, f"🚗 MACDELOREAN SELL — {patron} (Hace {i} sem)", direccion, k, stop
 
     return False, "", "", 0, 0
