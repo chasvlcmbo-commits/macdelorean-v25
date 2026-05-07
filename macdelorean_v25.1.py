@@ -2225,4 +2225,4 @@ if lanzar:
                     dir_ok = (senal['direccion'] == 'ALCISTA' and dir_alcista) or                              (senal['direccion'] == 'BAJISTA' and dir_bajista)
                     macd_ok = (paco_macd_filtro == "⚪ Cualquiera") or                               (paco_macd_filtro == "🟢 Alcista" and senal['macd'] == 'alcista') or                               (paco_macd_filtro == "🔴 Bajista" and senal['macd'] == 'bajista')
                     if dir_ok and macd_ok:
-  
+ 
