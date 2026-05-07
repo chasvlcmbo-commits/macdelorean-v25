@@ -227,7 +227,7 @@ st.markdown("""
 
 
 # ==============================================================================
-# 1. UNIVERSO MASIVO DE ACTIVOS — ~1400 TICKERS
+# 1. UNIVERSO MASIVO DE ACTIVOS — ~1860 TICKERS
 # ==============================================================================
 
 UNIVERSO = {
@@ -250,28 +250,28 @@ UNIVERSO = {
         "DDOG","ZS","CRWD","TEAM","NXPI","EXC","AEP","XEL","ILMN","ON",
         "GEHC","TTWO","SBUX","PDD","ALGN","ENPH","WBD","FANG","DLTR","SIRI",
         "ZM","EBAY","PYPL","LCID","RIVN","HOOD","COIN","MARA","RIOT","LULU",
-        "CHTR","BKR","CSX","FISV","ANSS","CPRT","CSGP","DKNG","GFS","HTHT"
+        "CHTR","BKR","CSX","ANSS","CPRT","CSGP","DKNG","GFS","HTHT"
     ],
 
     # ──────────────────────────────────────────────
     "📈 S&P 500 — FINANCIALS & INDUSTRIALS": [
         "JPM","BAC","WFC","GS","MS","C","BK","USB","PNC","TFC",
         "COF","AXP","DFS","SYF","ALLY","FITB","KEY","RF","HBAN","CFG",
-        "MTB","ZION","CMA","PBCT","FHN","SIVB","SBNY","WAL","EWBC","PACW",
+        "MTB","ZION","CMA","FHN","WAL","EWBC",
         "BLK","SCHW","TROW","IVZ","BEN","AMG","APAM","VRTS","SEIC","FDS",
         "ICE","CME","CBOE","NDAQ","MKTX","VIRT","LPLA","RJF","SF","PIPR",
         "MMC","AON","AJG","WTW","HIG","MET","PRU","AFL","ALL","TRV",
         "CB","AIG","PGR","CINF","GL","LNC","UNM","PFG","AIZ","EG",
         "GE","HON","MMM","CAT","DE","EMR","ETN","PH","ROK","AME",
-        "ITW","DOV","GGG","GNRC","XYL","REXNORD","FLS","IDEX","IR","TT",
+        "ITW","DOV","GGG","GNRC","XYL","FLS","IDEX","IR","TT",
         "CARR","OTIS","RTX","LMT","NOC","GD","LHX","BAH","LDOS","SAIC"
     ],
 
     # ──────────────────────────────────────────────
     "📈 S&P 500 — HEALTHCARE & CONSUMER": [
-        "UNH","CVS","CI","HUM","CNC","MOH","ELV","WCG","OSH","ALHC",
+        "UNH","CVS","CI","HUM","CNC","MOH","ELV",
         "JNJ","PFE","ABT","MRK","LLY","BMY","GILD","AMGN","REGN","VRTX",
-        "BIIB","ALNY","MRNA","BNTX","SGEN","EXAS","ILMN","PACB","TDOC","ONEM",
+        "BIIB","ALNY","MRNA","BNTX","EXAS","ILMN","PACB","TDOC","ONEM",
         "TMO","DHR","A","WAT","MTD","PKI","IQV","CTLT","CRL","MEDP",
         "MDT","SYK","BSX","EW","DXCM","RMD","HOLX","ZBH","BDX","COO",
         "AMZN","WMT","COST","TGT","HD","LOW","TJX","ROST","BURL","FIVE",
@@ -283,9 +283,9 @@ UNIVERSO = {
 
     # ──────────────────────────────────────────────
     "📈 S&P 500 — ENERGY & UTILITIES": [
-        "XOM","CVX","COP","EOG","PXD","DVN","MRO","APA","HES","FANG",
+        "XOM","CVX","COP","EOG","DVN","MRO","APA","HES","FANG",
         "SLB","HAL","BKR","OIS","OIH","NOV","DRQ","HP","NE","PTEN",
-        "VLO","MPC","PSX","DK","PBF","HFC","CLMT","PARR","CALUMET","ALJ",
+        "VLO","MPC","PSX","DK","PBF","CLMT","PARR","ALJ",
         "KMI","WMB","ET","EPD","MPLX","PAA","TRGP","OKE","LNG","FLEX",
         "DUK","SO","NEE","AEP","EXC","XEL","D","SRE","PEG","ED",
         "WEC","ES","ETR","CNP","CMS","LNT","PNW","OGE","NI","EVRG",
@@ -299,10 +299,10 @@ UNIVERSO = {
         "TXN","ADI","MCHP","LRCX","AMAT","KLAC","SNPS","CDNS","ANSS","EPAM",
         "PAYC","PCTY","HUBS","DOMO","COUP","VEEV","OKTA","ZI","BOX","DBX",
         "TWLO","BAND","EGHT","MSGM","CCCS","ALKT","JAMF","DOCU","SMAR","MNDY",
-        "AMT","CCI","SBAC","UNIT","LAMR","OUT","DLR","EQIX","QTS","CONE",
-        "O","WPC","NNN","STOR","VICI","GLPI","MGP","EPR","SPG","MAC",
+        "AMT","CCI","SBAC","UNIT","LAMR","OUT","DLR","EQIX",
+        "O","WPC","NNN","VICI","GLPI","EPR","SPG","MAC",
         "EQR","AVB","ESS","UDR","AIV","MAA","CPT","INVH","AMH","SUI",
-        "ELS","PSA","EXR","CUBE","LSI","NSA","COLD","STAG","ADC","TRNO"
+        "ELS","PSA","EXR","CUBE","LSI","NSA","STAG","ADC","TRNO"
     ],
 
     # ──────────────────────────────────────────────
@@ -384,6 +384,73 @@ UNIVERSO = {
         "JUST.L","LSEG.L","LMP.L","MNDI.L","MONY.L","MTRO.L","MUT.L"
     ],
 
+    # ──────────────────────────────────────────────
+    "🇨🇭 SUIZA — SMI 20 + Mid Caps": [
+        "NESN.SW","ROG.SW","NOVN.SW","UBSG.SW","ZURN.SW","ABBN.SW","CFR.SW",
+        "GIVN.SW","ALC.SW","SREN.SW","HOLN.SW","SLHN.SW","LONN.SW","SIKA.SW",
+        "GEBN.SW","KNIN.SW","SCMN.SW","PGHN.SW","SOON.SW","UHR.SW",
+        "BAER.SW","SGSN.SW","STMN.SW","TEMN.SW","ADEN.SW","BARN.SW","BKW.SW",
+        "BCGE.SW","BNR.SW","CMBN.SW","DKSH.SW","EMSN.SW","FHZN.SW","GALE.SW",
+        "GALN.SW","GAM.SW","GF.SW","HUBN.SW","IMPN.SW","KOMN.SW","LHN.SW",
+        "LISN.SW","LOGN.SW","MBTN.SW","METN.SW","MOZN.SW","SAND.SW","SCHP.SW",
+        "SCHN.SW","SDZ.SW","SFZN.SW","SQN.SW","SUN.SW","SWON.SW","TECN.SW",
+        "VACN.SW","VATN.SW","VONN.SW","VZN.SW","ZEHN.SW","BKWB.SW"
+    ],
+
+    # ──────────────────────────────────────────────
+    "🌍 EMERGING MARKETS — ETFs": [
+        "EEM","VWO","IEMG","SCHE","SPEM","DEM","EMXC","EDC",
+        "FXI","MCHI","ASHR","KWEB","CQQQ","YINN","CHIQ","CHIX",
+        "EWZ","EWW","EWY","EWT","EWA","EWC","EWG","EWU","EWJ","EWI","EWP",
+        "EWH","EWS","EWN","EWD","EWQ","EWL","EWO","EWK","EZA",
+        "INDA","INDY","SMIN","EPI","PIN","INDL",
+        "EIDO","EPHE","THD","VNM","IDX",
+        "RSX","ERUS",
+        "ARGT","ECH","ILF","BRZU","UBR",
+        "UAE","KSA","TUR","EGPT","NGE","AFK",
+        "EMQQ","EMHY","EMLC","EMB","CEMB","PCY"
+    ],
+
+    # ──────────────────────────────────────────────
+    "📊 RUSSELL 2000 — SMALL CAPS USA": [
+        "IWM","IWO","IWN","IJR","VBR","VTWO","SLY","FNDA",
+        "AAOI","ABCB","ABEO","ABG","ACAD","ACCO","ACEL","ACIW","ACLS","ACMR",
+        "ACT","ADMA","ADNT","ADPT","ADTN","ADUS","ADV","AEIS","AEL","AEO",
+        "AGM","AGO","AGYS","AIN","AIR","AIT","AKR","AL","ALE","ALEX",
+        "ALG","ALGT","ALK","ALKS","ALRM","ALV","AMBA","AMC","AMED","AMK",
+        "AMN","AMPH","AMR","AMRC","AMRX","AMSF","AMWD","ANDE","ANF","ANIK",
+        "AOSL","APAM","APLE","APLS","APOG","APPN","APR","APT","AQUA","AQUR",
+        "ARCB","ARCH","ARI","ARLO","AROC","ARQT","ARW","ASIX","ASB","ASGN",
+        "ASIX","ASO","ASPN","ASTE","ASTH","ASUR","ATEC","ATEN","ATEX","ATGE",
+        "ATKR","ATNI","ATR","ATRA","ATRC","ATSG","AUB","AUR","AUTL","AVA",
+        "AVAH","AVAV","AVNS","AVNT","AVNW","AVPT","AVT","AWR","AX","AXL",
+        "AXNX","AXSM","AXTA","AYI","AZTA","AZZ","B","BAH","BANC","BANF",
+        "BANR","BBSI","BBW","BCO","BCPC","BDC","BDN","BE","BEAM","BECN",
+        "BFAM","BFC","BFH","BFS","BG","BGS","BHE","BHF","BHLB","BIG",
+        "BIO","BIPC","BJ","BJRI","BKE","BKH","BKU","BL","BLD","BLDR",
+        "BLFS","BLKB","BLMN","BLX","BMRC","BNL","BOH","BOOM","BOOT","BOX",
+        "BPMC","BRC","BRKR","BRP","BRT","BRY","BSIG","BSRR","BTU","BUSE",
+        "BV","BWA","BWXT","BXMT","BXP","BY","BYD","BYND","BZH","C",
+        "CAC","CAKE","CAL","CALM","CALX","CAR","CARG","CARS","CART","CASH",
+        "CASY","CATY","CBL","CBT","CBU","CBZ","CC","CCB","CCBG","CCCC",
+        "CCK","CCMP","CCO","CCOI","CCS","CDE","CDLX","CDMO","CDNA","CECO",
+        "CELH","CENT","CENX","CERS","CERT","CEVA","CFB","CFFN","CFR","CHCO",
+        "CHCT","CHDN","CHE","CHEF","CHGG","CHK","CHWY","CIEN","CIO","CIVI",
+        "CIX","CKH","CLBT","CLDT","CLF","CLH","CLNE","CLNN","CLOV","CLW",
+        "CMBM","CMP","CMPR","CMRE","CMTL","CNDT","CNK","CNM","CNMD","CNOB",
+        "CNS","CNXC","CNXN","CODE","COFS","COHU","COKE","COLB","COLM","COMM",
+        "CONN","COOP","CORT","CPF","CPK","CPRX","CRC","CRGY","CRI","CRK",
+        "CRMT","CRNX","CRS","CRSR","CRUS","CRVL","CSGP","CSGS","CSII","CSL",
+        "CSTM","CSV","CSWI","CTBI","CTLP","CTOS","CTRE","CTRN","CTS","CUBI",
+        "CUTR","CVBF","CVCO","CVGI","CVI","CWAN","CWEN","CWH","CWK","CWST",
+        "CWT","CXM","CXW","CYH","CYRX","CZNC","CZR","DAKT","DAN","DAR",
+        "DBI","DBRG","DCO","DCOM","DCPH","DDD","DDS","DEA","DEI","DENN",
+        "DGII","DH","DHC","DHIL","DIN","DIOD","DK","DLB","DLX","DM",
+        "DMRC","DNB","DNLI","DNOW","DOCN","DOMA","DOMO","DOOR","DORM","DOUG",
+        "DRH","DRI","DRIO","DRQ","DSEY","DTI","DTM","DV","DXC","DXPE",
+        "DXYN","DY","DYAI","E","EAF","EAT","EB","EBC","EBSB","ECPG",
+        "ECVT","EE","EFC","EFSC","EFX","EGAN","EGBN","EGHT","EGY","EIG"
+    ],
     # ──────────────────────────────────────────────
     "🌍 EUROSTOXX 50": [
         "ASML.AS","ADYEN.AS","INGA.AS","PHIA.AS","HEIA.AS","NN.AS","RAND.AS","WKL.AS","ABN.AS","UMG.AS",
@@ -471,7 +538,7 @@ UNIVERSO = {
         "OXY","HAL","SLB","APA","DVN","MRO","HES","COP","EOG","FANG",
         "VLO","MPC","PSX","DK","PBF","KMI","WMB","ET","EPD","MPLX",
         "AGNC","NLY","STWD","BXMT","ABR","RC","GPMT","KREF","LADR","TRTX",
-        "O","WPC","NNN","VICI","GLPI","STOR","ADC","EPR","SRC","PINE"
+        "O","WPC","NNN","VICI","GLPI","ADC","EPR","SRC","PINE"
     ],
 
     # ──────────────────────────────────────────────
@@ -1984,8 +2051,7 @@ if lanzar:
             for tf_key, tf_name, est_sel, cer_sel in [
                 ('D', 'DIARIO',   div_macd_d_est, div_macd_d_cer),
                 ('W', 'SEMANAL',  div_macd_w_est, div_macd_w_cer),
-                ('M', 'MENSUAL',  div_macd_m_est, div_macd_m_cer),
-            ]:
+                ('M', 'MENSUAL',  div_macd_m_est, div_macd_m_cer)]:
                 es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
                 if es_div:
                     es_alc_div = "ALCISTA" in tipo_div
@@ -2106,8 +2172,7 @@ if lanzar:
             for tf_key, tf_name, est_sel, cer_sel in [
                 ('D', 'DIARIO',  div_macd_d_est, div_macd_d_cer),
                 ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
-                ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
-            ]:
+                ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer)]:
                 es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
                 if not es_div:
                     continue
@@ -2160,79 +2225,4 @@ if lanzar:
                     dir_ok = (senal['direccion'] == 'ALCISTA' and dir_alcista) or                              (senal['direccion'] == 'BAJISTA' and dir_bajista)
                     macd_ok = (paco_macd_filtro == "⚪ Cualquiera") or                               (paco_macd_filtro == "🟢 Alcista" and senal['macd'] == 'alcista') or                               (paco_macd_filtro == "🔴 Bajista" and senal['macd'] == 'bajista')
                     if dir_ok and macd_ok:
-                        macd_icon = "🟢" if senal['macd'] == 'alcista' else ("🔴" if senal['macd'] == 'bajista' else "⚪")
-                        res_paco.append({
-                            "Ticker":     ticker,
-                            "TF":         tf_name,
-                            "Patrón":     senal['patron'],
-                            "Dirección":  senal['direccion'],
-                            "Antigüedad": senal['antiguedad'],
-                            "Stoch K":    senal['stoch_k'],
-                            "Vol x media":senal['vol_ratio'],
-                            "MACD":       f"{macd_icon} {senal['macd'].capitalize()}",
-                            "Velas prev": senal['contexto'],
-                            "Precio":     precio
-                        })
-
-        # ── CONFLUENCIA: Divergencia MACD + Patrón de Vela mismo TF ──
-        if filtro_confluencia:
-            for tf_key, tf_name, est_sel, cer_sel in [
-                ('D', 'DIARIO',  div_macd_d_est, div_macd_d_cer),
-                ('W', 'SEMANAL', div_macd_w_est, div_macd_w_cer),
-                ('M', 'MENSUAL', div_macd_m_est, div_macd_m_cer),
-            ]:
-                # Primero verificar si hay divergencia en este TF
-                es_div, tipo_div, duracion, antiguedad = check_divergencia(pack[tf_key], timeframe=tf_key)
-                if not es_div:
-                    continue
-                div_alc = "ALCISTA" in tipo_div
-
-                # Filtro dirección global
-                if div_alc and not dir_alcista: continue
-                if not div_alc and not dir_bajista: continue
-
-                # Filtro MACD
-                est_tf, pos_tf = check_macd_estado(pack[tf_key])
-                if est_sel == "🟢 Alcista"         and est_tf != 'alcista': continue
-                if est_sel == "🔴 Bajista"         and est_tf != 'bajista': continue
-                if cer_sel == "⬆️ Por encima de 0"  and pos_tf != 'encima':  continue
-                if cer_sel == "⬇️ Por debajo de 0"  and pos_tf != 'debajo':  continue
-
-                # Buscar CUALQUIER patrón de vela en las últimas 4 velas
-                patron_encontrado = None
-                for j in range(4):
-                    es_patron, patron, direccion_p, k_p, stop_p = check_patron_vela_macdelorean(pack[tf_key], idx=-1-j)
-                    if es_patron:
-                        patron_alc = direccion_p == "ALCISTA"
-                        # Debe coincidir con la dirección de la divergencia
-                        if patron_alc == div_alc:
-                            patron_encontrado = {
-                                'patron': patron,
-                                'direccion': direccion_p,
-                                'k': k_p,
-                                'stop': stop_p,
-                                'j': j
-                            }
-                            break
-
-                if patron_encontrado is None:
-                    continue
-
-                macd_icon = "🟢" if est_tf=='alcista' else ("🔴" if est_tf=='bajista' else "⚪")
-                cero_icon = "⬆️" if pos_tf=='encima' else "⬇️"
-                icono     = "🚀" if div_alc else "💣"
-                res_confluencia.append({
-                    "Ticker":      ticker,
-                    "TF":          tf_name,
-                    "Dirección":   f"{'🟢 ALCISTA' if div_alc else '🔴 BAJISTA'}",
-                    "Señal":       f"{icono} DIV + {patron_encontrado['patron']}",
-                    "Div Fuerza":  tipo_div.split("(")[1].replace(")","") if "(" in tipo_div else "-",
-                    "Div Dur.":    duracion,
-                    "MACD":        f"{macd_icon} {est_tf.capitalize()} {cero_icon}",
-                    "Vela Stoch":  round(patron_encontrado['k'], 1),
-                    "Antigüedad":  f"Hace {patron_encontrado['j']} {'Mes' if tf_key=='M' else ('Sem' if tf_key=='W' else 'Día')}",
-                    "Precio":      precio,
-                    "Stop Ref":    round(float(patron_encontrado['stop']), 2)
-                })
-
-      
+  
