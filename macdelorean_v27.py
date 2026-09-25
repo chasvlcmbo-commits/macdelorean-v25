@@ -1872,7 +1872,7 @@ with st.sidebar:
     # Agrupar por región — DEBE ir ANTES de los botones
     grupos = {
         "USA": [k for k in UNIVERSO if any(x in k for x in ["DOW","NASDAQ","S&P","GROWTH","SMALL","MEGA"])],
-        "EUROPA": [k for k in UNIVERSO if any(x in k for x in ["DAX","MDAX","IBEX","BME","CAC","SBF","FTSE","EUROS","ITALIA"])],
+        "EUROPA": [k for k in UNIVERSO if any(x in k for x in ["DAX","MDAX","IBEX","BME","CAC","SBF","FTSE","EUROS","ITALIA","SUIZA"])],
         "ASIA": [k for k in UNIVERSO if "NIKKEI" in k],
         "ETFs": [k for k in UNIVERSO if "ETF" in k or "TEMAT" in k],
     }
@@ -1985,7 +1985,7 @@ with st.sidebar:
     else:
         paco_macd_filtro = "⚪ Cualquiera"
 
-    if filtro_diverg or filtro_confluencia:
+    if filtro_diverg or filtro_confluencia or filtro_conf_master:
         st.markdown("**MACD — Divergencias / Confluencias:**")
         opc_estado = ["⚪ Cualquiera", "🟢 Alcista", "🔴 Bajista"]
         opc_cero   = ["⚪ Cualquiera", "⬆️ Por encima de 0", "⬇️ Por debajo de 0"]
