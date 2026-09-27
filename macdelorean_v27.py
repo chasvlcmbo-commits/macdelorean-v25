@@ -1802,6 +1802,210 @@ def check_sabroson(pack, periodo_ema=200, timeframe="W", margen_pct=2.0, velas_a
 
 
 # ==============================================================================
+# 2b. UBICACIÓN DE LA VELA — ¿dónde aparece la señal?
+#     Solo informa, no descarta nada. Cada punto a favor suma una ⭐.
+#     Todo se mide con datos hasta la vela de la señal (nada del futuro).
+# ==============================================================================
+
+TF_INFERIOR = {'W': 'D', 'M': 'W', 'D': 'D'}          # la estructura se busca en la temporalidad de abajo
+NOMBRE_TF   = {'D': 'diario', 'W': 'semanal', 'M': 'mensual'}
+FIN_VELA    = {'D': pd.Timedelta(days=0), 'W': pd.Timedelta(days=6)}
+
+
+def _atr(df, n=14):
+    """Rango medio real: cuánto se mueve el valor normalmente. Sirve para medir 'cerca' sin usar %."""
+    prev = df['Close'].shift(1)
+    tr = pd.concat([df['High'] - df['Low'], (df['High'] - prev).abs(), (df['Low'] - prev).abs()], axis=1).max(axis=1)
+    return tr.rolling(n, min_periods=5).mean()
+
+
+def _abc_en_c(pack, tf, pos, alcista):
+    """¿La vela de la señal es el punto C de un A-B-C en la temporalidad inferior?
+    Alcista: A = mínimo, B = máximo posterior, C = mínimo de la vela de la señal, que retrocede
+    al menos el 61,8 % de A→B, sin un mínimo más bajo entre B y la vela. (Bajista: al revés.)"""
+    df_sig = pack[tf]
+    df_inf = pack.get(TF_INFERIOR[tf])
+    if df_inf is None or df_inf.empty:
+        return None
+    desde = df_sig.index[pos]
+    if tf == 'M':
+        hasta = desde + pd.offsets.MonthEnd(0)
+    else:
+        hasta = desde + FIN_VELA[tf]
+    vela = df_inf[(df_inf.index >= desde) & (df_inf.index <= hasta)]
+    previas = df_inf[df_inf.index < desde].iloc[-60:]
+    if vela.empty or len(previas) < 15:
+        return None
+    atr = float(_atr(df_inf).loc[:vela.index[-1]].iloc[-1])
+    if not atr > 0:
+        return None
+
+    ventana_b = previas.iloc[-40:]
+    if alcista:
+        c = float(vela['Low'].min())
+        ib = ventana_b['High'].idxmax(); b = float(ventana_b['High'].max())
+        antes_b = previas[previas.index < ib].iloc[-40:]
+        if len(antes_b) < 3:
+            return None
+        ia = antes_b['Low'].idxmin(); a = float(antes_b['Low'].min())
+        tramo = b - a
+        entre_b_y_c = previas[previas.index > ib]['Low']
+        hueco = (not entre_b_y_c.empty) and float(entre_b_y_c.min()) < c - 0.25 * atr
+        buena = c < a
+    else:
+        c = float(vela['High'].max())
+        ib = ventana_b['Low'].idxmin(); b = float(ventana_b['Low'].min())
+        antes_b = previas[previas.index < ib].iloc[-40:]
+        if len(antes_b) < 3:
+            return None
+        ia = antes_b['High'].idxmax(); a = float(antes_b['High'].max())
+        tramo = a - b
+        entre_b_y_c = previas[previas.index > ib]['High']
+        hueco = (not entre_b_y_c.empty) and float(entre_b_y_c.max()) > c + 0.25 * atr
+        buena = c > a
+
+    if tramo < 2 * atr or hueco:                                  # oscilación pequeña o la C ya fue antes
+        return None
+    retroceso = (b - c) / tramo if alcista else (c - b) / tramo
+    if retroceso < 0.618:                                          # no volvió lo bastante hacia A
+        return None
+    if abs(c - a) > max(1.5 * atr, 0.5 * tramo):                   # C demasiado lejos de A: ya no es un ABC
+        return None
+    n_ac = int(((df_inf.index > ia) & (df_inf.index <= vela.index[-1])).sum())
+    if not (8 <= n_ac <= 80):
+        return None
+    return f"📍 C de ABC {NOMBRE_TF[TF_INFERIOR[tf]]} ({'buena' if buena else 'mala'} osc.)"
+
+
+def _vela_previa_en_a(df, pos, alcista):
+    """¿Hubo otra vela de cambio en la misma dirección 3-10 velas antes y a un precio parecido?"""
+    atr = float(_atr(df).iloc[pos])
+    if not atr > 0:
+        return None
+    extremo = float(df['Low'].iloc[pos]) if alcista else float(df['High'].iloc[pos])
+    for k in range(3, 11):
+        p = pos - k
+        if p < 3:
+            break
+        idx = p - len(df)
+        ok, _, direc, _, _ = check_patron_vela_macdelorean(df, idx=idx)
+        if not ok:
+            ok_e, tipo_e, _, _ = check_vela_engano(df, idx=idx)
+            ok, direc = ok_e, ("ALCISTA" if "ALCISTA" in tipo_e else "BAJISTA")
+        if ok and (direc == "ALCISTA") == alcista:
+            otro = float(df['Low'].iloc[p]) if alcista else float(df['High'].iloc[p])
+            if abs(otro - extremo) <= atr:
+                return f"🔂 Vela de cambio en A (hace {k})"
+    return None
+
+
+def _pullback_a_b(df, pos, alcista):
+    """¿El precio rompió un B y ha vuelto a tocarlo? La vela de cambio aparece sobre el nivel roto."""
+    atr = float(_atr(df).iloc[pos])
+    if not atr > 0 or pos < 15:
+        return None
+    lo, hi, cl = df['Low'].values, df['High'].values, df['Close'].values
+    for pb in range(pos - 3, max(pos - 40, 2), -1):
+        if alcista:
+            if not (hi[pb] > hi[pb - 1] and hi[pb] > hi[pb - 2] and hi[pb] >= hi[pb + 1] and hi[pb] >= hi[pb + 2]):
+                continue
+            nivel = hi[pb]
+            roto = any(cl[j] > nivel for j in range(pb + 1, pos))
+            if roto and nivel - atr <= lo[pos] <= nivel + atr and cl[pos] >= nivel - 0.5 * atr:
+                return "🔁 Pullback a B"
+        else:
+            if not (lo[pb] < lo[pb - 1] and lo[pb] < lo[pb - 2] and lo[pb] <= lo[pb + 1] and lo[pb] <= lo[pb + 2]):
+                continue
+            nivel = lo[pb]
+            roto = any(cl[j] < nivel for j in range(pb + 1, pos))
+            if roto and nivel - atr <= hi[pos] <= nivel + atr and cl[pos] <= nivel + 0.5 * atr:
+                return "🔁 Pullback a B"
+    return None
+
+
+def _div_estocastico(df, pos, alcista):
+    """Divergencia de estocástico de verdad: el precio hace un mínimo más bajo y el estocástico
+    uno más alto, con el primero en sobreventa (<20). Bajista: al revés (>80)."""
+    if 'K' not in df.columns or pos < 12:
+        return None
+    k = df['K'].values
+    serie = df['Low'].values if alcista else df['High'].values
+    # extremo actual: el de la zona de la señal (la vela y las 2 anteriores)
+    zona = range(max(pos - 2, 0), pos + 1)
+    p2 = min(zona, key=lambda i: serie[i]) if alcista else max(zona, key=lambda i: serie[i])
+    for p1 in range(p2 - 5, max(p2 - 30, 2), -1):
+        es_giro = (serie[p1] < serie[p1 - 1] and serie[p1] < serie[p1 + 1]) if alcista else \
+                  (serie[p1] > serie[p1 - 1] and serie[p1] > serie[p1 + 1])
+        if not es_giro:
+            continue
+        # el estocástico se compara por su extremo en cada zona (±2 velas), como se mira en el gráfico
+        z1 = [x for x in k[max(p1 - 2, 0):p1 + 3] if not pd.isna(x)]
+        z2 = [x for x in k[max(p2 - 2, 0):pos + 1] if not pd.isna(x)]
+        if not z1 or not z2:
+            continue
+        entre = [x for x in k[p1 + 1:p2] if not pd.isna(x)]      # entre los dos extremos debe salir de la zona
+        if not entre:
+            continue
+        if (alcista and serie[p2] < serie[p1] and min(z1) < 20 and max(entre) > 30
+                and min(z2) >= min(z1) + 8):
+            return "📐 Div. estocástico"
+        if (not alcista and serie[p2] > serie[p1] and max(z1) > 80 and min(entre) < 70
+                and max(z2) <= max(z1) - 8):
+            return "📐 Div. estocástico"
+    return None
+
+
+def _div_macd(df, pos, alcista, tf):
+    ok, tipo, _, _ = check_divergencia(df.iloc[:pos + 1], timeframe=tf)
+    if ok and ("ALCISTA" in tipo) == alcista:
+        return "📐 Div. MACD"
+    return None
+
+
+def _apoyo_ema(df, pos, tf):
+    atr = float(_atr(df).iloc[pos])
+    if not atr > 0:
+        return None
+    fila = df.iloc[pos]
+    medias = [('EMA50', 'EMA 50'), ('EMA200', 'EMA 200')]
+    if tf == 'W':
+        medias.append(('EMA40', 'EMA 200 diaria'))
+    tocadas = [nombre for col, nombre in medias
+               if col in df.columns and not pd.isna(fila[col])
+               and fila['Low'] - 0.3 * atr <= fila[col] <= fila['High'] + 0.3 * atr]
+    return f"📏 Apoyo {' + '.join(tocadas)}" if tocadas else None
+
+
+def ubicacion(pack, tf, idx, alcista):
+    """Devuelve {'Ubicación': texto, '⭐': estrellas} para la vela idx (negativo) del timeframe tf."""
+    df = pack.get(tf)
+    if df is None or df.empty or tf not in ('D', 'W', 'M') or abs(idx) > len(df):
+        return {"Ubicación": "—", "⭐": ""}
+    pos = len(df) + idx
+    etiquetas = []
+    for f in (lambda: _abc_en_c(pack, tf, pos, alcista),
+              lambda: _vela_previa_en_a(df, pos, alcista),
+              lambda: _pullback_a_b(df, pos, alcista),
+              lambda: _div_macd(df, pos, alcista, tf),
+              lambda: _div_estocastico(df, pos, alcista),
+              lambda: _apoyo_ema(df, pos, tf)):
+        try:
+            e = f()
+        except Exception:
+            e = None
+        if e:
+            etiquetas.append(e)
+    return {"Ubicación": " · ".join(etiquetas) if etiquetas else "—", "⭐": "⭐" * len(etiquetas)}
+
+
+def _idx_desde_texto(txt):
+    """'Vela actual' → -1 · 'Hace 2 Sem' / '(Hace 2 sem)' → -3."""
+    import re
+    m = re.search(r"Hace (\d+)", txt or "")
+    return -1 - int(m.group(1)) if m else -1
+
+
+# ==============================================================================
 # 3. UTILIDADES COMUNES (antes repetidas en cada escáner)
 # ==============================================================================
 
@@ -1873,7 +2077,8 @@ def velas_a_tiempo(v, tf):
 def esc_premium(t, pack, precio, cfg):
     ok, txt, stop = super_buscador(pack)
     if ok and (("BUY" in txt and cfg['dir_alc']) or ("SELL" in txt and cfg['dir_baj'])):
-        return [{"Ticker": t, "Señal": txt, "Precio": precio, "Stop Ref": round(float(stop), 2)}]
+        return [{"Ticker": t, "Señal": txt, "Precio": precio, "Stop Ref": round(float(stop), 2),
+                 **ubicacion(pack, 'W', _idx_desde_texto(txt), "BUY" in txt)}]
     return []
 
 
@@ -1891,7 +2096,8 @@ def esc_velas(t, pack, precio, cfg):
             if pasa:
                 filas.append({"Ticker": t, "TF": TF_NOMBRE[tf], "Patrón": patron, "Dirección": dir_p,
                               "Antigüedad": f"Hace {j} {TF_UNIDAD[tf]}", "Stoch K": round(k_p, 1),
-                              "MACD": txt_macd(est, pos), "Precio": precio, "Stop Ref": round(float(stop_p), 2)})
+                              "MACD": txt_macd(est, pos), "Precio": precio, "Stop Ref": round(float(stop_p), 2),
+                              **ubicacion(pack, tf, -1 - j, dir_p == "ALCISTA")})
             break
     return filas
 
@@ -1931,7 +2137,8 @@ def esc_confluencia(t, pack, precio, cfg):
                               "Señal": f"{'🚀' if alc else '💣'} DIV + {patron}",
                               "Div Fuerza": _fuerza(tipo), "Div Dur.": dur, "MACD": txt_macd(est, pos),
                               "Vela Stoch": round(k_p, 1), "Antigüedad": f"Hace {j} {TF_UNIDAD[tf]}",
-                              "Precio": precio, "Stop Ref": round(float(stop_p), 2)})
+                              "Precio": precio, "Stop Ref": round(float(stop_p), 2),
+                              **ubicacion(pack, tf, -1 - j, alc)})
                 break
     return filas
 
@@ -1946,7 +2153,8 @@ def esc_conf_master(t, pack, precio, cfg):
                               "Señal": f"{'🚀' if alc else '💣'} DIV + VELA ENGAÑO",
                               "Div Fuerza": _fuerza(tipo), "Div Dur.": dur, "MACD": txt_macd(est, pos),
                               "Vela Stoch": round(k_v, 1), "Antigüedad": f"Hace {j} {TF_UNIDAD[tf]}",
-                              "Precio": precio, "Stop Ref": round(float(stop_v), 2)})
+                              "Precio": precio, "Stop Ref": round(float(stop_v), 2),
+                              **ubicacion(pack, tf, -1 - j, alc)})
                 break
     return filas
 
@@ -1966,7 +2174,8 @@ def esc_macdelorean(t, pack, precio, cfg):
     ok, txt, dir_m, k, stop = buscador_velas_macdelorean(pack)
     if ok and direccion_ok(dir_m == "ALCISTA", cfg):
         return [{"Ticker": t, "Señal": txt, "Dirección": dir_m, "Stoch K": round(k, 1),
-                 "Stop Ref": round(float(stop), 2), "Precio": precio}]
+                 "Stop Ref": round(float(stop), 2), "Precio": precio,
+                 **ubicacion(pack, 'W', _idx_desde_texto(txt), dir_m == "ALCISTA")}]
     return []
 
 
@@ -1975,7 +2184,8 @@ def _esc_sabroson(t, pack, precio, cfg, periodo, tf, filtros, col_ema):
         pack, periodo_ema=periodo, timeframe=tf, margen_pct=2.0, velas_atras=3, filtros_macd=filtros)
     if ok and direccion_ok(dir_s == "ALCISTA", cfg):
         return [{"Ticker": t, "Dirección": dir_s, "Patrón": patron, "Antigüedad": antig, col_ema: p_ema,
-                 "Distancia %": dist, "Stoch K": k, "Stop Ref": stop, "Precio": precio}]
+                 "Distancia %": dist, "Stoch K": k, "Stop Ref": stop, "Precio": precio,
+                 **ubicacion(pack, tf, _idx_desde_texto(antig), dir_s == "ALCISTA")}]
     return []
 
 
@@ -1997,7 +2207,8 @@ def esc_paco(t, pack, precio, cfg):
             if direccion_ok(s['direccion'] == 'ALCISTA', cfg) and macd_ok:
                 filas.append({"Ticker": t, "TF": TF_NOMBRE[tf], "Patrón": s['patron'], "Dirección": s['direccion'],
                               "Antigüedad": s['antiguedad'], "Stoch K": s['stoch_k'], "Vol x media": s['vol_ratio'],
-                              "MACD": txt_macd(s['macd']), "Velas prev": s['contexto'], "Precio": precio})
+                              "MACD": txt_macd(s['macd']), "Velas prev": s['contexto'], "Precio": precio,
+                              **ubicacion(pack, tf, _idx_desde_texto(s['antiguedad']), s['direccion'] == 'ALCISTA')})
     return filas
 
 
@@ -2389,6 +2600,8 @@ if st.session_state.get('radar'):
                 (st.warning if clave == 'premium' else st.info)(vacio)
                 continue
             df_out = pd.DataFrame(res[clave])
+            if '⭐' in df_out.columns:                     # las mejor ubicadas, arriba
+                df_out = df_out.iloc[df_out['⭐'].str.len().sort_values(ascending=False, kind='stable').index]
             if separar is None:
                 st.dataframe(df_out, use_container_width=True)
             else:
