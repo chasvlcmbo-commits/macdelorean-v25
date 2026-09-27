@@ -227,30 +227,31 @@ st.markdown("""
 
 
 # ==============================================================================
-# 1. UNIVERSO DE ACTIVOS — 29 índices · 1585 tickers únicos
-#    Revisado 27/09/2026: fuera 108 valores que ya no cotizan; 8 cambios de símbolo
-#    (BK→BNY, MMC→MRSH, EQR/AVB→VMRK, PKI→RVTY, IDEX→IEX, DAQO→DQ, CHK→EXE). Añadida China.
+# 1. UNIVERSO DE ACTIVOS — 29 índices · 1598 tickers únicos
+#    Revisado 27/09/2026: composición actual de Dow, Nasdaq-100, DAX, MDAX, IBEX, CAC, FTSE 100,
+#    SMI y FTSE MIB. Fuera los valores que ya no cotizan; símbolos renombrados corregidos
+#    (BK→BNY, MMC→MRSH, EQR/AVB→VMRK, PKI→RVTY, IDEX→IEX, DAQO→DQ, CHK→EXE, ROG→ROP, AXA→CS).
 # ==============================================================================
 
 UNIVERSO = {
 
     '🇺🇸 DOW JONES 30': [
-        "MMM","AXP","AMGN","AAPL","BA","CAT","CVX","CSCO","KO","DIS",
-        "DOW","GS","HD","HON","IBM","INTC","JNJ","JPM","MCD","MRK",
-        "MSFT","NKE","PG","CRM","TRV","UNH","VZ","V","WMT","AMZN",
+        "MMM","GOOGL","AXP","AMGN","AMZN","AAPL","BA","CAT","CVX","CSCO",
+        "KO","DIS","GS","HD","HON","IBM","JNJ","JPM","MCD","MRK",
+        "MSFT","NKE","NVDA","PG","CRM","SHW","TRV","UNH","V","WMT",
     ],
 
     '🚀 NASDAQ 100 COMPLETO': [
-        "AAPL","MSFT","NVDA","AMZN","META","TSLA","GOOGL","GOOG","AVGO","COST",
-        "NFLX","TMUS","AMD","CSCO","ADBE","PEP","AZN","QCOM","TXN","ISRG",
-        "INTU","AMAT","HON","CMCSA","BKNG","VRTX","REGN","MU","PANW","ADI",
-        "LRCX","KLAC","SNPS","CDNS","MELI","ASML","MDLZ","GILD","CTAS","ADP",
-        "FTNT","MAR","ABNB","MCHP","ORLY","KDP","DXCM","WDAY","PAYX","MNST",
-        "ROST","BIIB","IDXX","PCAR","FAST","CTSH","ODFL","VRSK","CEG","DDOG",
-        "ZS","CRWD","TEAM","NXPI","EXC","AEP","XEL","ILMN","ON","GEHC",
-        "TTWO","SBUX","PDD","ALGN","ENPH","WBD","FANG","DLTR","SIRI","ZM",
-        "EBAY","PYPL","LCID","RIVN","HOOD","COIN","MARA","RIOT","LULU","CHTR",
-        "BKR","CSX","CPRT","CSGP","DKNG","GFS","HTHT",
+        "ADBE","AMD","ABNB","ALNY","GOOGL","GOOG","AMZN","AEP","AMGN","ADI",
+        "AAPL","AMAT","APP","ARM","ASML","ALAB","ADSK","ADP","AXON","BKR",
+        "BKNG","AVGO","CDNS","CTAS","CSCO","CCEP","CMCSA","CEG","CPRT","CRWV",
+        "COST","CRWD","CSX","DDOG","DXCM","FANG","DASH","EXC","FAST","FER",
+        "FTNT","GEHC","GILD","HON","IDXX","INTC","INTU","ISRG","KDP","KLAC",
+        "KHC","LRCX","LIN","LITE","MAR","MRVL","MELI","META","MCHP","MU",
+        "MSFT","MSTR","MDLZ","MPWR","MNST","NBIS","NFLX","NVDA","NXPI","ORLY",
+        "ODFL","PCAR","PLTR","PANW","PAYX","PYPL","PDD","PEP","QCOM","REGN",
+        "RKLB","ROP","ROST","SNDK","STX","SHOP","SBUX","SNPS","TMUS","TTWO",
+        "TER","TSLA","TXN","TRI","VRTX","WMT","WBD","WDC","WDAY","XEL",
     ],
 
     '📈 S&P 500 — FINANCIALS & INDUSTRIALS': [
@@ -299,25 +300,25 @@ UNIVERSO = {
     ],
 
     '🇩🇪 DAX 40 COMPLETO': [
-        "SAP.DE","SIE.DE","AIR.DE","ALV.DE","DTE.DE","MBG.DE","VOW3.DE","BMW.DE","BAS.DE","ADS.DE",
-        "IFX.DE","DHL.DE","MUV2.DE","DB1.DE","BEI.DE","RWE.DE","EOAN.DE","SY1.DE","BAYN.DE","DTG.DE",
-        "HEN3.DE","VNA.DE","CON.DE","PAH3.DE","MTX.DE","HEI.DE","MRK.DE","BNR.DE","HNR1.DE","ZAL.DE",
-        "FRE.DE","FME.DE","QIA.DE","PUM.DE","SHL.DE","ENR.DE","EVT.DE","1COV.DE","SON22.DE","SXS.DE",
+        "ADS.DE","AIR.DE","ALV.DE","BAS.DE","BAYN.DE","BEI.DE","BMW.DE","BNR.DE","CBK.DE","CON.DE",
+        "DTG.DE","DBK.DE","DB1.DE","DHL.DE","DTE.DE","EOAN.DE","FRE.DE","FME.DE","G1A.DE","HNR1.DE",
+        "HEI.DE","HEN3.DE","IFX.DE","MBG.DE","MRK.DE","MTX.DE","MUV2.DE","PAH3.DE","QIA.DE","RHM.DE",
+        "RWE.DE","SAP.DE","G24.DE","SIE.DE","ENR.DE","SHL.DE","SY1.DE","VOW3.DE","VNA.DE","ZAL.DE",
     ],
 
     '🇩🇪 MDAX ALEMANIA (Mid Caps)': [
-        "AIXA.DE","AFX.DE","BNR.DE","BOSS.DE","COP.DE","EVK.DE","FPE3.DE","G1A.DE","GXI.DE","HAG.DE",
-        "HHFA.DE","HOT.DE","IFX.DE","JEN.DE","K+S.DE","KGX.DE","KSB3.DE","LEG.DE","LHA.DE","MBB.DE",
-        "MDG1.DE","MRCG.DE","NDX1.DE","NEM.DE","O2D.DE","PSM.DE","RAA.DE","RSL2.DE","S92.DE","SDF.DE",
-        "SDAX.DE","SGL.DE","SMHN.DE","ST5.DE","STO3.DE","SY1.DE","TKA.DE","TUI1.DE","VBK.DE","WAF.DE",
-        "WCH.DE","WIN.DE",
+        "AIXA.DE","AT1.DE","NDA.DE","BC8.DE","BFSA.DE","GBF.DE","AFX.DE","EVD.DE","DHER.DE","LHA.DE",
+        "EVK.DE","EVT.DE","FRA.DE","FNTN.DE","FPE3.DE","GXI.DE","HLE.DE","HFG.DE","HAG.DE","HOT.DE",
+        "BOSS.DE","JEN.DE","JUN3.DE","SDF.DE","KGX.DE","KBX.DE","KRN.DE","LXS.DE","LEG.DE","NEM.DE",
+        "NDX1.DE","PUM.DE","RAA.DE","RDC.DE","RRTL.DE","WAF.DE","STM.DE","SAX.DE","TEG.DE","TLX.DE",
+        "TMV.DE","TKA.DE","8TRA.DE","TUI1.DE","UTDI.DE","WCH.DE",
     ],
 
     '🇪🇸 IBEX 35 COMPLETO': [
-        "ITX.MC","IBE.MC","BBVA.MC","SAN.MC","CABK.MC","TEF.MC","ACS.MC","FER.MC","AENA.MC","AMS.MC",
-        "REP.MC","CLNX.MC","IAG.MC","ENG.MC","ANA.MC","GRF.MC","RED.MC","MTS.MC","ACX.MC","BKT.MC",
-        "MAP.MC","TL5.MC","MEL.MC","PHM.MC","SAB.MC","IDR.MC","COL.MC","LOG.MC","FDR.MC","ROVI.MC",
-        "SOL.MC","UNI.MC","VIS.MC","ELE.MC","CIE.MC",
+        "ACS.MC","ACX.MC","AMS.MC","ANA.MC","ANE.MC","BBVA.MC","BKT.MC","CABK.MC","CLNX.MC","COL.MC",
+        "AENA.MC","ELE.MC","ENG.MC","FDR.MC","FER.MC","GRF.MC","IAG.MC","IBE.MC","IDR.MC","ITX.MC",
+        "LOG.MC","MAP.MC","MRL.MC","MTS.MC","NTGY.MC","PUIG.MC","RED.MC","REP.MC","ROVI.MC","SAB.MC",
+        "SAN.MC","SCYR.MC","SLR.MC","TEF.MC","UNI.MC",
     ],
 
     '🇪🇸 BME GROWTH (Small Caps España)': [
@@ -327,10 +328,10 @@ UNIVERSO = {
     ],
 
     '🇫🇷 CAC 40 COMPLETO': [
-        "MC.PA","OR.PA","RMS.PA","TTE.PA","SAN.PA","AIR.PA","SU.PA","BNP.PA","SAF.PA","EL.PA",
-        "AXA.PA","DG.PA","KER.PA","DSY.PA","STLAP.PA","RI.PA","CAP.PA","GLE.PA","ORA.PA","BN.PA",
-        "EN.PA","LR.PA","ACA.PA","CA.PA","ML.PA","VIE.PA","SGO.PA","HO.PA","ATO.PA","PUB.PA",
-        "WLN.PA","URW.PA","RNO.PA","VIV.PA","ENGI.PA","STM.PA","TEP.PA","BOL.PA","ERF.PA","AF.PA",
+        "AC.PA","AI.PA","AIR.PA","MT.AS","CS.PA","BNP.PA","EN.PA","BVI.PA","CAP.PA","CA.PA",
+        "ACA.PA","BN.PA","DSY.PA","EDEN.PA","ENGI.PA","EL.PA","ERF.PA","RMS.PA","KER.PA","OR.PA",
+        "LR.PA","MC.PA","ML.PA","ORA.PA","RI.PA","PUB.PA","RNO.PA","SAF.PA","SGO.PA","SAN.PA",
+        "SU.PA","GLE.PA","STLAP.PA","STMPA.PA","TEP.PA","HO.PA","TTE.PA","URW.PA","VIE.PA","DG.PA",
     ],
 
     '🇫🇷 SBF 120 FRANCIA (Mid Caps)': [
@@ -342,27 +343,26 @@ UNIVERSO = {
     ],
 
     '🇬🇧 FTSE 100 COMPLETO': [
-        "SHEL.L","AZN.L","HSBA.L","ULVR.L","BP.L","GSK.L","RIO.L","DGE.L","BHP.L","REL.L",
-        "NG.L","BATS.L","VOD.L","LLOY.L","NWG.L","BARC.L","PRU.L","LGEN.L","AV.L","STAN.L",
-        "ABF.L","ANTO.L","AUTO.L","BA.L","BNZL.L","BT-A.L","CCH.L","CPG.L","CNA.L","CRDA.L",
-        "DCC.L","DPH.L","EZJ.L","FERG.L","FLTR.L","GLEN.L","HLMA.L","HL.L","IHG.L","IMB.L",
-        "ITV.L","JD.L","KGF.L","LAND.L","MNG.L","MRO.L","NXT.L","OCDO.L","PSN.L","PSON.L",
-        "RKT.L","RR.L","RS1.L","SGE.L","SMDS.L","SMIN.L","SKG.L","SPX.L","SSE.L","SBRY.L",
-        "SVT.L","TSCO.L","WPP.L","WTB.L","UU.L","TUI.L","AAL.L","ADM.L","AGK.L","AHT.L",
-        "BME.L","BOO.L","BRBY.L","BVS.L","CCC.L","CLDN.L","CNE.L","COB.L","CYBG.L","DARK.L",
-        "DLN.L","ECM.L","ENT.L","EXPN.L","FCIT.L","FRES.L","GRG.L","HIK.L","HWDN.L","ICG.L",
-        "III.L","IMI.L","INF.L","ITRK.L","JET.L","JET2.L","JMAT.L","JUST.L","LSEG.L","LMP.L",
-        "MNDI.L","MONY.L","MTRO.L","MUT.L",
+        "III.L","ABDN.L","ADM.L","AAF.L","ALW.L","AAL.L","ANTO.L","ABF.L","AZN.L","AUTO.L",
+        "AV.L","BAB.L","BA.L","BARC.L","BTRW.L","BEZ.L","BP.L","BATS.L","BLND.L","BT-A.L",
+        "BNZL.L","BRBY.L","CNA.L","CCEP.L","CCH.L","CPG.L","CCC.L","CTEC.L","CRDA.L","DCC.L",
+        "DGE.L","DPLM.L","EDV.L","ENT.L","EXPN.L","FCIT.L","FRES.L","GAW.L","GLEN.L","GSK.L",
+        "HLN.L","HLMA.L","HSX.L","HWDN.L","HSBA.L","ICG.L","IGG.L","IHG.L","IMI.L","IMB.L",
+        "INF.L","IAG.L","ITRK.L","INVP.L","JD.L","BGEO.L","KGF.L","LAND.L","LMP.L","LSEG.L",
+        "MNG.L","MKS.L","MRO.L","MTLN.L","NG.L","NWG.L","NXT.L","PSON.L","PSH.L","PSN.L",
+        "PCT.L","PRU.L","RKT.L","REL.L","RTO.L","RIO.L","RR.L","SGE.L","SBRY.L","SDR.L",
+        "SMT.L","SGRO.L","SVT.L","SHEL.L","SMIN.L","SN.L","SPX.L","SSE.L","STAN.L","SDLF.L",
+        "STJ.L","TSCO.L","BBOX.L","ULVR.L","UU.L","VOD.L","WEIR.L","WTB.L",
     ],
 
     '🇨🇭 SUIZA — SMI 20 + Mid Caps': [
-        "NESN.SW","ROG.SW","NOVN.SW","UBSG.SW","ZURN.SW","ABBN.SW","CFR.SW","GIVN.SW","ALC.SW","SREN.SW",
-        "HOLN.SW","SLHN.SW","LONN.SW","SIKA.SW","GEBN.SW","KNIN.SW","SCMN.SW","PGHN.SW","SOON.SW","UHR.SW",
-        "BAER.SW","SGSN.SW","STMN.SW","TEMN.SW","ADEN.SW","BARN.SW","BKW.SW","BCGE.SW","BNR.SW","CMBN.SW",
-        "DKSH.SW","EMSN.SW","FHZN.SW","GALE.SW","GALN.SW","GAM.SW","GF.SW","HUBN.SW","IMPN.SW","KOMN.SW",
-        "LHN.SW","LISN.SW","LOGN.SW","MBTN.SW","METN.SW","MOZN.SW","SAND.SW","SCHP.SW","SCHN.SW","SDZ.SW",
-        "SFZN.SW","SQN.SW","SUN.SW","SWON.SW","TECN.SW","VACN.SW","VATN.SW","VONN.SW","VZN.SW","ZEHN.SW",
-        "BKWB.SW",
+        "NOVN.SW","ROP.SW","NESN.SW","ABBN.SW","UBSG.SW","CFR.SW","ZURN.SW","HOLN.SW","SREN.SW","LONN.SW",
+        "SCMN.SW","GIVN.SW","ALC.SW","SIKA.SW","AMRZ.SW","SLHN.SW","KNIN.SW","GEBN.SW","PGHN.SW","LOGN.SW",
+        "SOON.SW","UHR.SW","BAER.SW","SGSN.SW","STMN.SW","TEMN.SW","ADEN.SW","BARN.SW","BKW.SW","BCGE.SW",
+        "BNR.SW","CMBN.SW","DKSH.SW","EMSN.SW","FHZN.SW","GALE.SW","GALN.SW","GAM.SW","GF.SW","HUBN.SW",
+        "IMPN.SW","KOMN.SW","LHN.SW","LISN.SW","MBTN.SW","METN.SW","MOZN.SW","SAND.SW","SCHP.SW","SCHN.SW",
+        "SDZ.SW","SFZN.SW","SQN.SW","SUN.SW","SWON.SW","TECN.SW","VACN.SW","VATN.SW","VONN.SW","VZN.SW",
+        "ZEHN.SW","BKWB.SW",
     ],
 
     '🌍 EMERGING MARKETS — ETFs': [
@@ -412,16 +412,17 @@ UNIVERSO = {
     '🌍 EUROSTOXX 50': [
         "ASML.AS","ADYEN.AS","INGA.AS","PHIA.AS","HEIA.AS","NN.AS","RAND.AS","WKL.AS","ABN.AS","UMG.AS",
         "SAP.DE","SIE.DE","ALV.DE","MBG.DE","BMW.DE","BAYN.DE","ADS.DE","BAS.DE","MUV2.DE","DTE.DE",
-        "MC.PA","OR.PA","TTE.PA","SAN.PA","BNP.PA","AIR.PA","SU.PA","AXA.PA","EL.PA","DG.PA",
+        "MC.PA","OR.PA","TTE.PA","SAN.PA","BNP.PA","AIR.PA","SU.PA","CS.PA","EL.PA","DG.PA",
         "ITX.MC","BBVA.MC","SAN.MC","IBE.MC","REP.MC","ENI.MI","ISP.MI","UCG.MI","ENEL.MI","TIT.MI",
-        "NESN.SW","ROG.SW","NOVN.SW","NOKIA.HE","NESTE.HE",
+        "NOKIA.HE","NESTE.HE","AD.AS","PRX.AS","ABI.BR","NDA-FI.HE","RHM.DE","ENR.DE","DBK.DE","IFX.DE",
+        "DHL.DE","SAF.PA","SGO.PA","AI.PA","RMS.PA","RACE.MI","STLAM.MI",
     ],
 
     '🇮🇹 FTSE MIB ITALIA': [
-        "ENI.MI","ISP.MI","UCG.MI","ENEL.MI","TIT.MI","G.MI","MB.MI","RACE.MI","LDO.MI","STM.MI",
-        "PRY.MI","BAMI.MI","MONC.MI","SRG.MI","PST.MI","ORN.MI","ERG.MI","BMPS.MI","CPR.MI","FCA.MI",
-        "STLAM.MI","CNH.MI","A2A.MI","AMP.MI","AZM.MI","BMED.MI","BC.MI","BZU.MI","CRDI.MI","DIA.MI",
-        "DIG.MI","EXO.MI","FILA.MI","FNM.MI","GEO.MI","IVG.MI","MFB.MI","MFEA.MI","MG.MI",
+        "A2A.MI","AMP.MI","AVIO.MI","AZM.MI","BMED.MI","BMPS.MI","BAMI.MI","BPE.MI","BC.MI","BZU.MI",
+        "CPR.MI","DIA.MI","ENEL.MI","ENI.MI","RACE.MI","FCT.MI","FBK.MI","G.MI","HER.MI","ISP.MI",
+        "INW.MI","IG.MI","IVG.MI","LDO.MI","LTMC.MI","MB.MI","MONC.MI","NEXI.MI","PST.MI","PRY.MI",
+        "REC.MI","SPM.MI","SRG.MI","STLAM.MI","STMMI.MI","TIT.MI","TEN.MI","TRN.MI","UCG.MI","UNI.MI",
     ],
 
     '🇯🇵 NIKKEI 225 (ADRs disponibles en USA)': [
@@ -509,7 +510,7 @@ UNIVERSO = {
         "UNH","JPM","XOM","MA","JNJ","WMT","PG","HD","MRK","CVX",
         "ABBV","KO","BAC","PEP","COST","TMO","CRM","ACN","MCD","CSCO",
         "ABT","ORCL","ADBE","NKE","TXN","DHR","NEE","LIN","PM","RTX",
-        "NESN.SW","ROG.SW","NOVN.SW","SHEL.L","AZN.L","HSBA.L","BP.L","GSK.L","MC.PA","OR.PA",
+        "NESN.SW","ROP.SW","NOVN.SW","SHEL.L","AZN.L","HSBA.L","BP.L","GSK.L","MC.PA","OR.PA",
         "ASML.AS","SAP.DE","SIE.DE","ALV.DE","TM","SONY","MUFG",
     ],
 }
@@ -1811,6 +1812,16 @@ TF_NOMBRE  = {'D': 'DIARIO', 'W': 'SEMANAL', 'M': 'MENSUAL', '4H': '4 HORAS'}
 TF_UNIDAD  = {'D': 'Día', 'W': 'Sem', 'M': 'Mes'}
 
 
+@st.cache_resource
+def _memoria_servidor():
+    """Memoria que vive en el servidor, no en el móvil: sobrevive si la pantalla se bloquea
+    o se cierra la pestaña. Guarda el último escaneo para poder retomarlo."""
+    return {}
+
+
+MEMORIA = _memoria_servidor()
+
+
 def macd_pasa(df, est_sel, cer_sel):
     """Aplica el filtro MACD de un timeframe. Devuelve (cumple, estado, posicion)."""
     est, pos = check_macd_estado(df)
@@ -2256,24 +2267,43 @@ with st.sidebar:
     st.markdown("<div style='height:14px;'></div>", unsafe_allow_html=True)
     lanzar = st.button("◆  LANZAR RADAR  ◆")
 
+    # Escaneo a medias (móvil bloqueado, pestaña cerrada...): se puede retomar
+    pendiente = MEMORIA.get('escaneo')
+    continuar = False
+    if pendiente and not pendiente['completo']:
+        hechos, total = pendiente['hechos'], len(pendiente['master_list'])
+        st.caption(f"⏸️ Hay un escaneo interrumpido del {pendiente['hora']} ({hechos}/{total}). "
+                   "Se retoma con los filtros de entonces.")
+        continuar = st.button(f"▶️  CONTINUAR ESCANEO  ({hechos}/{total})")
+
 
 # ==============================================================================
 # 7. EJECUCIÓN
 # ==============================================================================
-if lanzar:
-    if not indices_seleccionados:
-        st.error("⚠️ Selecciona al menos un índice.")
-        st.stop()
+if lanzar or continuar:
+    if continuar and not lanzar:
+        esc = pendiente                                   # retoma el escaneo guardado
+    else:
+        if not indices_seleccionados:
+            st.error("⚠️ Selecciona al menos un índice.")
+            st.stop()
+        if not any(activos.values()):
+            st.error("⚠️ Activa al menos un filtro de búsqueda.")
+            st.stop()
+        esc = {'master_list': list(dict.fromkeys(t for n in indices_seleccionados for t in UNIVERSO[n])),
+               'n_indices': len(indices_seleccionados), 'activos': dict(activos), 'cfg': cfg,
+               'solo_cerradas': solo_cerradas, 'hora': time.strftime('%d/%m/%Y %H:%M'),
+               'resultados': {clave: [] for clave, *_ in ESCANERES}, 'fallos': [],
+               'hechos': 0, 'completo': False}
+        MEMORIA['escaneo'] = esc
+
+    master_list, activos, cfg = esc['master_list'], esc['activos'], esc['cfg']
+    resultados, fallos, inicio = esc['resultados'], esc['fallos'], esc['hechos']
     claves_activas = [clave for clave, act in activos.items() if act]
-    if not claves_activas:
-        st.error("⚠️ Activa al menos un filtro de búsqueda.")
-        st.stop()
+    st.success(f"📡 **{len(master_list)} OBJETIVOS** · **{esc['n_indices']} ÍNDICES** — "
+               + (f"CONTINUANDO DESDE {inicio}..." if inicio else "ESCANEO EN PROCESO..."))
 
-    master_list = list(dict.fromkeys(t for n in indices_seleccionados for t in UNIVERSO[n]))
-    st.success(f"📡 **{len(master_list)} OBJETIVOS** · **{len(indices_seleccionados)} ÍNDICES** — ESCANEO EN PROCESO...")
-
-    resultados   = {clave: [] for clave, *_ in ESCANERES}
-    progress_bar = st.progress(0)
+    progress_bar = st.progress(inicio / len(master_list))
     status_text  = st.empty()
     vivos        = [(clave, ph) for clave, ph in zip(['premium', 'velas', 'diverg'], st.columns(3))]
     vivos        = [(clave, ph.empty()) for clave, ph in vivos if activos[clave]]
@@ -2281,31 +2311,35 @@ if lanzar:
     TAM_LOTE   = 50
     n_lotes    = (len(master_list) + TAM_LOTE - 1) // TAM_LOTE
     datos_lote = {}
-    fallos     = []
     incluir_4h = activos['puntob'] and '4H' in cfg['pb_tfs']
 
-    for i, ticker in enumerate(master_list):
-        if i % TAM_LOTE == 0:
+    for i in range(inicio, len(master_list)):
+        ticker = master_list[i]
+        if i % TAM_LOTE == 0 or i == inicio:
+            fin_lote = (i // TAM_LOTE + 1) * TAM_LOTE
             status_text.text(f"📥 Descargando lote {i // TAM_LOTE + 1}/{n_lotes}...")
-            datos_lote = descargar_lote(master_list[i:i + TAM_LOTE])
+            datos_lote = descargar_lote(master_list[i:fin_lote])
         progress_bar.progress((i + 1) / len(master_list))
         status_text.text(f"🔎 {ticker}  [{i + 1}/{len(master_list)}]")
 
         pack = procesar_datos(ticker, incluir_4h=incluir_4h,
-                              df_diario=datos_lote.get(ticker), solo_cerradas=solo_cerradas)
+                              df_diario=datos_lote.get(ticker), solo_cerradas=esc['solo_cerradas'])
         if pack is None:
             fallos.append(ticker)
+            esc['hechos'] = i + 1
             continue
         precio = round(float(pack['D'].iloc[-1]['Close']), 2)
 
-        for clave in claves_activas:
-            filas = FUNCION[clave](ticker, pack, precio, cfg)
-            if filas:
-                resultados[clave].extend(filas)
-                for clave_v, ph in vivos:
-                    if clave_v == clave:
-                        ph.dataframe(pd.DataFrame(resultados[clave]), use_container_width=True)
+        # Se calcula todo el ticker y se guarda de golpe: si se corta a mitad, no quedan filas duplicadas
+        nuevas = {clave: FUNCION[clave](ticker, pack, precio, cfg) for clave in claves_activas}
+        for clave, filas in nuevas.items():
+            resultados[clave].extend(filas)
+        esc['hechos'] = i + 1
+        for clave_v, ph in vivos:
+            if nuevas.get(clave_v):
+                ph.dataframe(pd.DataFrame(resultados[clave_v]), use_container_width=True)
 
+    esc['completo'] = True
     for _, ph in vivos:
         ph.empty()
     progress_bar.empty()
@@ -2314,12 +2348,18 @@ if lanzar:
 
     # Guardar en sesión → pulsar "Exportar CSV" no borra el escaneo
     st.session_state['radar'] = {
-        'hora':         time.strftime('%d/%m/%Y %H:%M'),
+        'hora':         esc['hora'],
         'n_escaneados': len(master_list),
         'fallos':       fallos,
         'res':          resultados,
         'activos':      dict(activos),
     }
+
+# Si el escaneo terminó mientras el móvil estaba bloqueado, sus resultados aparecen al volver
+elif not st.session_state.get('radar') and pendiente and pendiente['completo']:
+    st.session_state['radar'] = {'hora': pendiente['hora'], 'n_escaneados': len(pendiente['master_list']),
+                                 'fallos': pendiente['fallos'], 'res': pendiente['resultados'],
+                                 'activos': pendiente['activos']}
 
 
 # ==============================================================================
